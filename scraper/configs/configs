@@ -1,0 +1,17 @@
+[postgresql]
+postgresql_host = localhost
+postgresql_port = 5432
+postgresql_database = filecoin_storage_providers_energy
+postgresql_user = filecoin_storage_providers_energy
+postgresql_password = FILECOIN_STORAGE_PROVIDERS_DATABASE_PASSWORD
+
+[log]
+logfile = logs/log
+
+[scraper]
+golang_date_format=2006-01-02T15:04:05.000-07:00
+measurement_started=2022-05-18T00:00:00.000+02:00
+batch_size=10000
+
+[scheduler]
+cron_parse_binaries = @every 1h
