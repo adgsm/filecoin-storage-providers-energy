@@ -139,7 +139,7 @@ func getSPData(sp string, db *pgxpool.Pool, config helpers.Config,
 	// Prepare URI model for API call
 	spUriParamsModel := prepareUriModel(spWithAuth["sp"])
 
-	// Prepare URI model for API call
+	// Prepare URI date model for API call
 	spUriDateParamsModel := prepareUriDateModel(spWithAuth["sp"])
 
 	// Prepare URI for API call

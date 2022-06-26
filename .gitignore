@@ -1,4 +1,5 @@
 **/.DS_Store
+**/libs/
 **/logs/
 **/.settings
 **/.htaccess
@@ -17,11 +18,17 @@
 **/selenium-debug.log
 **/.sass-cache
 **/target
-*.pem
+**/*.key
+**/*.pem
+**/*.ext
+**/*.crt
+**/*.csr
+**/*.srl
 **/package-lock.json
-*.code-workspace
+**/*.code-workspace
 **/.env
 **/.env.local
+**/*.exe
 
 # Editor directories and files
 **/.idea
@@ -30,3 +37,4 @@
 **/*.ntvs*
 **/*.njsproj
 **/*.sln
+**/*.code-workspace
