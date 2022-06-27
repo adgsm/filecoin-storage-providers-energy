@@ -6,8 +6,8 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/adgsm/filecoin-storage-providers-energy/api"
-	"github.com/adgsm/filecoin-storage-providers-energy/internal"
+	"github.com/adgsm/filecoin-storage-providers-energy-api/api"
+	"github.com/adgsm/filecoin-storage-providers-energy-api/internal"
 	"github.com/joho/godotenv"
 )
 

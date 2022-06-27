@@ -90,7 +90,7 @@ CREATE OR REPLACE FUNCTION filecoin_storage_providers_energy_api.process_scraped
 				LOOP
 					json_ip = jsonRec->>'Ip';
 					SELECT "id" INTO hardware_id FROM filecoin_storage_providers_energy_api.hardware WHERE "ip" = json_ip;
-					RAISE NOTICE '% % % % % % % % %', sp_id, sp_name, api_id, api_name, rec.api, json_ip, hardware_id, (jsonRec->>'Time')::TIMESTAMPTZ, (jsonRec->>'Power')::DOUBLE PRECISION;
+--					RAISE NOTICE '% % % % % % % % %', sp_id, sp_name, api_id, api_name, rec.api, json_ip, hardware_id, (jsonRec->>'Time')::TIMESTAMPTZ, (jsonRec->>'Power')::DOUBLE PRECISION;
 					INSERT INTO filecoin_storage_providers_energy_api.power ("api_id", "hardware_id", "time", "power")
 						VALUES (api_id, hardware_id, (jsonRec->>'Time')::TIMESTAMPTZ, (jsonRec->>'Power')::DOUBLE PRECISION);
 				END LOOP;
@@ -98,7 +98,7 @@ CREATE OR REPLACE FUNCTION filecoin_storage_providers_energy_api.process_scraped
 				FOR jsonRec IN SELECT * FROM jsonb_array_elements(rec.body)
 				LOOP
 					SELECT "id" INTO hardware_id FROM filecoin_storage_providers_energy_api.hardware WHERE "storage_provider_id" = sp_id AND "name" = 'Solar pannels';
-					RAISE NOTICE '% % % % % % % %', sp_id, sp_name, api_id, api_name, rec.api, hardware_id, (jsonRec->>'Time')::TIMESTAMPTZ, (jsonRec->>'Power')::DOUBLE PRECISION;
+--					RAISE NOTICE '% % % % % % % %', sp_id, sp_name, api_id, api_name, rec.api, hardware_id, (jsonRec->>'Time')::TIMESTAMPTZ, (jsonRec->>'Power')::DOUBLE PRECISION;
 					INSERT INTO filecoin_storage_providers_energy_api.power ("api_id", "hardware_id", "time", "power")
 						VALUES (api_id, hardware_id, (jsonRec->>'Time')::TIMESTAMPTZ, (jsonRec->>'Power')::DOUBLE PRECISION);
 				END LOOP;
@@ -108,7 +108,7 @@ CREATE OR REPLACE FUNCTION filecoin_storage_providers_energy_api.process_scraped
 					FOR jsonRecVal IN SELECT * FROM jsonb_array_elements(rec_sub.value)
 					LOOP
 						IF (rec_sub.key = '16080') THEN
-							RAISE NOTICE '% % % % % % % %', sp_id, sp_name, api_id, api_name, rec.api, rec_sub.key, (jsonRecVal->>'value')::DOUBLE PRECISION * 1000, to_timestamp((jsonRecVal->>'timestamp')::INTEGER)::timestamptz;
+--							RAISE NOTICE '% % % % % % % %', sp_id, sp_name, api_id, api_name, rec.api, rec_sub.key, (jsonRecVal->>'value')::DOUBLE PRECISION * 1000, to_timestamp((jsonRecVal->>'timestamp')::INTEGER)::timestamptz;
 							INSERT INTO filecoin_storage_providers_energy_api.energy ("api_id", "hardware_id", "time", "energy")
 								VALUES (api_id, hardware_id, to_timestamp((jsonRecVal->>'timestamp')::INTEGER)::timestamptz, (jsonRecVal->>'value')::DOUBLE PRECISION * 1000);
 						END IF;
@@ -119,3 +119,102 @@ CREATE OR REPLACE FUNCTION filecoin_storage_providers_energy_api.process_scraped
 		END LOOP;
 	END;
 $process_scraped_data$ LANGUAGE plpgsql;
+
+--
+-- Search / filter storage provider's hardware
+--
+DROP TYPE response_search_hardware CASCADE;
+CREATE TYPE response_search_hardware AS (hardware_id INTEGER, storage_provider_id INTEGER, hardware_name VARCHAR(255),
+	hardware_functions VARCHAR(255)[], rack VARCHAR(255), miner_id VARCHAR(255), ip VARCHAR(255), location VARCHAR(255), description TEXT);
+
+--DROP FUNCTION IF EXISTS filecoin_storage_providers_energy_api.search_hardware(IN in_storage_provider_id INTEGER, IN in_name VARCHAR(255), IN in_miners VARCHAR(255)[], IN in_functions VARCHAR(255)[], IN in_racks VARCHAR(255)[], IN in_locations VARCHAR(255)[]);
+CREATE OR REPLACE FUNCTION filecoin_storage_providers_energy_api.search_hardware(IN in_storage_provider_id INTEGER, IN in_name VARCHAR(255), IN in_miners VARCHAR(255)[], IN in_functions VARCHAR(255)[], IN in_racks VARCHAR(255)[], IN in_locations VARCHAR(255)[]) RETURNS SETOF response_search_hardware AS $search_hardware$
+	DECLARE
+		s_name VARCHAR = '';
+		miners_length SMALLINT = array_length(in_miners, 1);
+		miners VARCHAR = '';
+		counter_miners SMALLINT = 1;
+		racks_length SMALLINT = array_length(in_racks, 1);
+		racks VARCHAR = '';
+		counter_racks SMALLINT = 1;
+		locations_length SMALLINT = array_length(in_locations, 1);
+		locations VARCHAR = '';
+		counter_locations SMALLINT = 1;
+		functions_length SMALLINT = array_length(in_functions, 1);
+		functions VARCHAR = '';
+		rcrd response_search_hardware;
+	BEGIN
+
+		-- constructing search sub-query per provided name
+		IF (in_name IS NOT NULL) THEN
+			s_name = format(' AND lower("name") LIKE lower(%L)', concat('%', in_name, '%'));
+		END IF;
+
+		-- constructing search sub-query per provided miners
+		IF (miners_length > 0) THEN
+			miners = concat(miners, 'AND (');
+			WHILE counter_miners <= miners_length LOOP
+				IF (counter_miners > 1) THEN
+					miners = concat(miners, ' OR ');
+				END IF;
+				miners = concat(miners, format('lower("miner") LIKE lower(%L)', concat('%', translate(in_miners[counter_miners], '''', ''), '%')));
+				counter_miners = counter_miners + 1;
+			END LOOP;
+			miners = concat(miners, ')');
+		END IF;
+
+		-- constructing search sub-query per provided racks
+		IF (racks_length > 0) THEN
+			racks = concat(racks, 'AND (');
+			WHILE counter_racks <= racks_length LOOP
+				IF (counter_racks > 1) THEN
+					racks = concat(racks, ' OR ');
+				END IF;
+				racks = concat(racks, format('lower("rack") LIKE lower(%L)', concat('%', translate(in_racks[counter_racks], '''', ''), '%')));
+				counter_racks = counter_racks + 1;
+			END LOOP;
+			racks = concat(racks, ')');
+		END IF;
+
+		-- constructing search sub-query per provided locations
+		IF (locations_length > 0) THEN
+			locations = concat(locations, 'AND (');
+			WHILE counter_locations <= locations_length LOOP
+				IF (counter_locations > 1) THEN
+					locations = concat(locations, ' OR ');
+				END IF;
+				locations = concat(locations, format('lower("location") LIKE lower(%L)', concat('%', translate(in_locations[counter_locations], '''', ''), '%')));
+				counter_locations = counter_locations + 1;
+			END LOOP;
+			locations = concat(locations, ')');
+		END IF;
+
+		-- constructing search sub-query per provided functions
+		IF (functions_length > 0) THEN
+			locations = concat(locations, format(' AND (lower(%L::text))::text[] && (lower("functions"::text))::text[]', in_functions));
+		END IF;
+
+		-- resultset
+		FOR rcrd IN
+		EXECUTE format('
+			SELECT "id", "storage_provider_id", "name", "functions", "rack", "miner", "ip", "location", "description"
+			FROM filecoin_storage_providers_energy_api.hardware
+			WHERE "storage_provider_id" = %L
+			%s
+			%s
+			%s
+			%s
+			%s
+			ORDER BY "id" ASC;',
+			in_storage_provider_id,
+			s_name,
+			miners,
+			racks,
+			locations,
+			functions
+		)
+		LOOP
+			RETURN NEXT rcrd;
+		END LOOP;
+	END;
+$search_hardware$ LANGUAGE plpgsql;
