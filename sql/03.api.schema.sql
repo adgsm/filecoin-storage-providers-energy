@@ -218,3 +218,108 @@ CREATE OR REPLACE FUNCTION filecoin_storage_providers_energy_api.search_hardware
 		END LOOP;
 	END;
 $search_hardware$ LANGUAGE plpgsql;
+
+--
+-- Search / filter storage provider's data related to power consumption
+--
+DROP TYPE response_search_power CASCADE;
+CREATE TYPE response_search_power AS (hardware_id INTEGER, storage_provider_id INTEGER, hardware_name VARCHAR(255),
+	hardware_functions VARCHAR(255)[], rack VARCHAR(255), miner_id VARCHAR(255), ip VARCHAR(255), location VARCHAR(255),
+	description TEXT, power DOUBLE PRECISION, time TIMESTAMPTZ);
+
+--DROP FUNCTION IF EXISTS filecoin_storage_providers_energy_api.search_power(IN in_storage_provider_id INTEGER, IN in_name VARCHAR(255), IN in_miners VARCHAR(255)[], IN in_functions VARCHAR(255)[], IN in_racks VARCHAR(255)[], IN in_locations VARCHAR(255)[], IN in_from TIMESTAMPTZ, IN in_to TIMESTAMPTZ);
+CREATE OR REPLACE FUNCTION filecoin_storage_providers_energy_api.search_power(IN in_storage_provider_id INTEGER, IN in_name VARCHAR(255), IN in_miners VARCHAR(255)[], IN in_functions VARCHAR(255)[], IN in_racks VARCHAR(255)[], IN in_locations VARCHAR(255)[], IN in_from TIMESTAMPTZ, IN in_to TIMESTAMPTZ) RETURNS SETOF response_search_power AS $search_power$
+	DECLARE
+		s_name VARCHAR = '';
+		miners_length SMALLINT = array_length(in_miners, 1);
+		miners VARCHAR = '';
+		counter_miners SMALLINT = 1;
+		racks_length SMALLINT = array_length(in_racks, 1);
+		racks VARCHAR = '';
+		counter_racks SMALLINT = 1;
+		locations_length SMALLINT = array_length(in_locations, 1);
+		locations VARCHAR = '';
+		counter_locations SMALLINT = 1;
+		functions_length SMALLINT = array_length(in_functions, 1);
+		functions VARCHAR = '';
+		rcrd response_search_power;
+	BEGIN
+
+		-- constructing search sub-query per provided name
+		IF (in_name IS NOT NULL) THEN
+			s_name = format(' AND lower(h."name") LIKE lower(%L)', concat('%', in_name, '%'));
+		END IF;
+
+		-- constructing search sub-query per provided miners
+		IF (miners_length > 0) THEN
+			miners = concat(miners, 'AND (');
+			WHILE counter_miners <= miners_length LOOP
+				IF (counter_miners > 1) THEN
+					miners = concat(miners, ' OR ');
+				END IF;
+				miners = concat(miners, format('lower(h."miner") LIKE lower(%L)', concat('%', translate(in_miners[counter_miners], '''', ''), '%')));
+				counter_miners = counter_miners + 1;
+			END LOOP;
+			miners = concat(miners, ')');
+		END IF;
+
+		-- constructing search sub-query per provided racks
+		IF (racks_length > 0) THEN
+			racks = concat(racks, 'AND (');
+			WHILE counter_racks <= racks_length LOOP
+				IF (counter_racks > 1) THEN
+					racks = concat(racks, ' OR ');
+				END IF;
+				racks = concat(racks, format('lower(h."rack") LIKE lower(%L)', concat('%', translate(in_racks[counter_racks], '''', ''), '%')));
+				counter_racks = counter_racks + 1;
+			END LOOP;
+			racks = concat(racks, ')');
+		END IF;
+
+		-- constructing search sub-query per provided locations
+		IF (locations_length > 0) THEN
+			locations = concat(locations, 'AND (');
+			WHILE counter_locations <= locations_length LOOP
+				IF (counter_locations > 1) THEN
+					locations = concat(locations, ' OR ');
+				END IF;
+				locations = concat(locations, format('lower(h."location") LIKE lower(%L)', concat('%', translate(in_locations[counter_locations], '''', ''), '%')));
+				counter_locations = counter_locations + 1;
+			END LOOP;
+			locations = concat(locations, ')');
+		END IF;
+
+		-- constructing search sub-query per provided functions
+		IF (functions_length > 0) THEN
+			locations = concat(locations, format(' AND (lower(%L::text))::text[] && (lower(h."functions"::text))::text[]', in_functions));
+		END IF;
+
+		-- resultset
+		FOR rcrd IN
+		EXECUTE format('
+			SELECT h."id" AS "hardware_id", h."storage_provider_id", h."name", h."functions", h."rack", h."miner", h."ip",
+				h."location", h."description", p."power", p."time"
+			FROM filecoin_storage_providers_energy_api.hardware h
+			INNER JOIN filecoin_storage_providers_energy_api.power p
+			ON h.id = p.hardware_id
+			WHERE h."storage_provider_id" = %L
+			AND p."time" >= %L AND p."time" <= %L
+			%s
+			%s
+			%s
+			%s
+			%s
+			ORDER BY p."time" ASC;',
+			in_storage_provider_id,
+			in_from, in_to,
+			s_name,
+			miners,
+			racks,
+			locations,
+			functions
+		)
+		LOOP
+			RETURN NEXT rcrd;
+		END LOOP;
+	END;
+$search_power$ LANGUAGE plpgsql;
