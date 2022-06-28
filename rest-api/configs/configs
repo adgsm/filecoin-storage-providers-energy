@@ -15,3 +15,6 @@ tsl_cert = localhost.crt
 [api]
 api_host = localhost
 api_port = 3000
+
+[query]
+limit = 10000
