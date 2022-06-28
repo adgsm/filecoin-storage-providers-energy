@@ -2,8 +2,8 @@
 by [Momcilo Dzunic aka smartbee.eth](https://twitter.com/mdzunic)
 
 1. Collecting energy consumption data from Filecoin Storage Providers
-2. Parsing energy consumption data (TODO)
-3. Consolidated energy consumption data API (TODO)
+2. Parsing energy consumption data
+3. Consolidated energy consumption data API
 
 ### Use
 
@@ -12,10 +12,14 @@ by [Momcilo Dzunic aka smartbee.eth](https://twitter.com/mdzunic)
     cd scraper
     go run main.go
 ```
+2. Run energy consumption data API
+```
+    cd rest-api
+    go run main.go
+```
 ### ToDo
 
-2. Parsing energy consumption data
-3. Consolidated energy consumption data API
+4. Create simple we UI with charts
 
 ### License
 Licensed under the MIT license.
