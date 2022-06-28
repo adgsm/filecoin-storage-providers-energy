@@ -1,4 +1,4 @@
-# Filecoin Green | Storage Providers Energy Consumption
+# Filecoin Green | Metered Storage Providers Energy Consumption
 by [Momcilo Dzunic aka smartbee.eth](https://twitter.com/mdzunic)
 
 1. Collecting energy consumption data from Filecoin Storage Providers
@@ -19,7 +19,7 @@ by [Momcilo Dzunic aka smartbee.eth](https://twitter.com/mdzunic)
 ```
 ### ToDo
 
-4. Create simple we UI with charts
+4. Create simple web UI with charts
 
 ### License
 Licensed under the MIT license.

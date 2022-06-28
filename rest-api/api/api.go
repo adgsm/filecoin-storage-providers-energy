@@ -389,23 +389,32 @@ func power(w http.ResponseWriter, r *http.Request) {
 	offset := queryParams.Get("offset")
 	limit := queryParams.Get("limit")
 
-	var off int
-	var lmt int
-	var limitErr error
 	if offset == "" {
-		off = 0
+		offset = "0"
+	}
+
+	off, offErr := strconv.Atoi(offset)
+	if offErr != nil {
+		message := "Default query offset is not valid intiger."
+		jsonMessage := fmt.Sprintf("{\"message\":\"%s\"}", message)
+		internal.WriteLog("error", message, "api")
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(jsonMessage))
+		return
 	}
 
 	if limit == "" {
-		lmt, limitErr = strconv.Atoi(config["limit"])
-		if limitErr != nil {
-			message := "Default query limit defined in configs is not valid intiger."
-			jsonMessage := fmt.Sprintf("{\"message\":\"%s\"}", message)
-			internal.WriteLog("error", message, "api")
-			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte(jsonMessage))
-			return
-		}
+		limit = config["limit"]
+	}
+
+	lmt, limitErr := strconv.Atoi(limit)
+	if limitErr != nil {
+		message := "Default query limit defined in configs is not valid intiger."
+		jsonMessage := fmt.Sprintf("{\"message\":\"%s\"}", message)
+		internal.WriteLog("error", message, "api")
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(jsonMessage))
+		return
 	}
 
 	internal.WriteLog("info", fmt.Sprintf("Searching storage provider's power consumption with following parameters:"+
@@ -604,23 +613,32 @@ func energy(w http.ResponseWriter, r *http.Request) {
 	offset := queryParams.Get("offset")
 	limit := queryParams.Get("limit")
 
-	var off int
-	var lmt int
-	var limitErr error
 	if offset == "" {
-		off = 0
+		offset = "0"
+	}
+
+	off, offErr := strconv.Atoi(offset)
+	if offErr != nil {
+		message := "Default query offset is not valid intiger."
+		jsonMessage := fmt.Sprintf("{\"message\":\"%s\"}", message)
+		internal.WriteLog("error", message, "api")
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(jsonMessage))
+		return
 	}
 
 	if limit == "" {
-		lmt, limitErr = strconv.Atoi(config["limit"])
-		if limitErr != nil {
-			message := "Default query limit defined in configs is not valid intiger."
-			jsonMessage := fmt.Sprintf("{\"message\":\"%s\"}", message)
-			internal.WriteLog("error", message, "api")
-			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte(jsonMessage))
-			return
-		}
+		limit = config["limit"]
+	}
+
+	lmt, limitErr := strconv.Atoi(limit)
+	if limitErr != nil {
+		message := "Default query limit defined in configs is not valid intiger."
+		jsonMessage := fmt.Sprintf("{\"message\":\"%s\"}", message)
+		internal.WriteLog("error", message, "api")
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(jsonMessage))
+		return
 	}
 
 	internal.WriteLog("info", fmt.Sprintf("Searching storage provider's energy consumption with following parameters:"+
