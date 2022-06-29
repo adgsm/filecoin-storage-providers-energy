@@ -78,6 +78,14 @@ func initRoutes(r *mux.Router) {
 	// search / filter storage provider's energy consumption
 	r.HandleFunc("/energy", energy).Methods(http.MethodGet)
 	r.HandleFunc("/energy?storage_provider_id={storage_provider_id}&name={name}&racks={racks}&miners={miners}&locations={locations}&functions={functions}&from={from}&to={to}&offset={offset}&limit={limit}", energy).Methods(http.MethodGet)
+
+	// list racks / spaces on provided storage provider id
+	r.HandleFunc("/list-spaces", listSpaces).Methods(http.MethodGet)
+	r.HandleFunc("/list-spaces?storage_provider_id={storage_provider_id}", listSpaces).Methods(http.MethodGet)
+
+	// list racks / space hardware on provided storage provider id
+	r.HandleFunc("/list-space-hardware", listSpaceHardware).Methods(http.MethodGet)
+	r.HandleFunc("/list-space-hardware?storage_provider_id={storage_provider_id}&space={space}", listSpaceHardware).Methods(http.MethodGet)
 }
 
 func storageProviders(w http.ResponseWriter, r *http.Request) {
@@ -731,6 +739,196 @@ func energy(w http.ResponseWriter, r *http.Request) {
 	sitesJson, errJson := json.Marshal(records)
 	if errJson != nil {
 		message := "Cannot marshal the database response for searched storage provider's energy consumption."
+		jsonMessage := fmt.Sprintf("{\"message\":\"%s\"}", message)
+		internal.WriteLog("error", message, "api")
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(jsonMessage))
+		return
+	}
+
+	// response writter
+	w.WriteHeader(http.StatusOK)
+	w.Write(sitesJson)
+}
+
+func listSpaces(w http.ResponseWriter, r *http.Request) {
+	// declare types
+	type Record struct {
+		Space string
+		Order internal.NullInt32
+	}
+
+	// set defalt response content type
+	w.Header().Set("Content-Type", "application/json")
+
+	// collect query parameters
+	queryParams := r.URL.Query()
+
+	// check for provided storage provider id
+	storageProviderIdStr := queryParams.Get("storage_provider_id")
+
+	if storageProviderIdStr == "" {
+		message := "Storage provider Id is mandatory parameter."
+		jsonMessage := fmt.Sprintf("{\"message\":\"%s\"}", message)
+		internal.WriteLog("error", message, "api")
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(jsonMessage))
+		return
+	}
+
+	storageProviderId, storageProviderIdErr := strconv.Atoi(storageProviderIdStr)
+	if storageProviderIdErr != nil {
+		message := "Storage provider Id should be valid integer."
+		jsonMessage := fmt.Sprintf("{\"message\":\"%s\"}", message)
+		internal.WriteLog("error", message, "api")
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(jsonMessage))
+		return
+	}
+
+	internal.WriteLog("info", fmt.Sprintf("Listing racks / spaces for storage provider '%d'.",
+		storageProviderId), "api")
+
+	// list racks / spaces
+	rows, rowsErr := db.Query(context.Background(), "select * from filecoin_storage_providers_energy_api.list_spaces($1);",
+		storageProviderId)
+
+	if rowsErr != nil {
+		fmt.Print(rowsErr.Error())
+		message := "Error occured whilst listing racks / spaces."
+		jsonMessage := fmt.Sprintf("{\"message\":\"%s\"}", message)
+		internal.WriteLog("error", message, "api")
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(jsonMessage))
+		return
+	}
+
+	defer rows.Close()
+
+	records := []Record{}
+
+	for rows.Next() {
+		var record Record
+		if recordErr := rows.Scan(&record.Space, &record.Order); recordErr != nil {
+			message := fmt.Sprintf("Error occured whilst listing racks / spaces in the the database. (%s)", recordErr.Error())
+			jsonMessage := fmt.Sprintf("{\"message\":\"%s\"}", message)
+			internal.WriteLog("error", message, "api")
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(jsonMessage))
+			return
+		}
+		records = append(records, record)
+	}
+
+	// send response
+	sitesJson, errJson := json.Marshal(records)
+	if errJson != nil {
+		message := "Cannot marshal the database response for listed racks / spaces."
+		jsonMessage := fmt.Sprintf("{\"message\":\"%s\"}", message)
+		internal.WriteLog("error", message, "api")
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(jsonMessage))
+		return
+	}
+
+	// response writter
+	w.WriteHeader(http.StatusOK)
+	w.Write(sitesJson)
+}
+
+func listSpaceHardware(w http.ResponseWriter, r *http.Request) {
+	// declare types
+	type Record struct {
+		Id                int
+		StorageProviderId int
+		Name              string
+		Functions         []string
+		Rack              internal.NullString
+		MinerId           internal.NullString
+		Ip                internal.NullString
+		Location          internal.NullString
+		Description       internal.NullString
+	}
+
+	// set defalt response content type
+	w.Header().Set("Content-Type", "application/json")
+
+	// collect query parameters
+	queryParams := r.URL.Query()
+
+	// check for provided storage provider id
+	storageProviderIdStr := queryParams.Get("storage_provider_id")
+
+	if storageProviderIdStr == "" {
+		message := "Storage provider Id is mandatory parameter."
+		jsonMessage := fmt.Sprintf("{\"message\":\"%s\"}", message)
+		internal.WriteLog("error", message, "api")
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(jsonMessage))
+		return
+	}
+
+	storageProviderId, storageProviderIdErr := strconv.Atoi(storageProviderIdStr)
+	if storageProviderIdErr != nil {
+		message := "Storage provider Id should be valid integer."
+		jsonMessage := fmt.Sprintf("{\"message\":\"%s\"}", message)
+		internal.WriteLog("error", message, "api")
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(jsonMessage))
+		return
+	}
+
+	// check for provided space name
+	space := queryParams.Get("space")
+
+	if space == "" {
+		message := "Space is mandatory parameter."
+		jsonMessage := fmt.Sprintf("{\"message\":\"%s\"}", message)
+		internal.WriteLog("error", message, "api")
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(jsonMessage))
+		return
+	}
+
+	internal.WriteLog("info", fmt.Sprintf("Listing rack's / space hardware for storage provider id '%d' and space '%s'.",
+		storageProviderId, space), "api")
+
+	// list racks / spaces
+	rows, rowsErr := db.Query(context.Background(), "select * from filecoin_storage_providers_energy_api.hardware where storage_provider_id = $1 and rack = $2;",
+		storageProviderId, space)
+
+	if rowsErr != nil {
+		fmt.Print(rowsErr.Error())
+		message := "Error occured whilst listing rack's / space hardware."
+		jsonMessage := fmt.Sprintf("{\"message\":\"%s\"}", message)
+		internal.WriteLog("error", message, "api")
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(jsonMessage))
+		return
+	}
+
+	defer rows.Close()
+
+	records := []Record{}
+
+	for rows.Next() {
+		var record Record
+		if recordErr := rows.Scan(&record.Id, &record.StorageProviderId, &record.Name, &record.Functions,
+			&record.Rack, &record.MinerId, &record.Ip, &record.Location, &record.Description); recordErr != nil {
+			message := fmt.Sprintf("Error occured whilst searching for storage provider's hardware in the the database. (%s)", recordErr.Error())
+			jsonMessage := fmt.Sprintf("{\"message\":\"%s\"}", message)
+			internal.WriteLog("error", message, "api")
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(jsonMessage))
+			return
+		}
+		records = append(records, record)
+	}
+
+	// send response
+	sitesJson, errJson := json.Marshal(records)
+	if errJson != nil {
+		message := "Cannot marshal the database response for listed rack's / space hardware."
 		jsonMessage := fmt.Sprintf("{\"message\":\"%s\"}", message)
 		internal.WriteLog("error", message, "api")
 		w.WriteHeader(http.StatusInternalServerError)

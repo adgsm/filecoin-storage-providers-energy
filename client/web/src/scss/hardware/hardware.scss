@@ -1,0 +1,193 @@
+@import "~@/node_modules/primeicons/primeicons.css";
+
+.common-hardware {
+	position: relative;
+	display: flex;
+	flex-direction: row;
+	flex-wrap: nowrap;
+	justify-content: flex-start;
+
+	overflow-x: auto;
+	.space-icon {
+		margin: .5rem;
+		padding: 7rem .5rem 2rem .5rem;
+		width: 10rem;
+		min-width: 10rem;
+		max-width: 10rem;
+		border: 2px solid #ddd;
+		border-radius: .5rem;
+		cursor: pointer;
+
+		background-size: 5rem;
+		background-repeat: no-repeat;
+		background-position: center 1rem;
+
+		&:hover,
+		&.active {
+			border-color: #555;
+		}
+
+		&:hover .space-name {
+			transform: translateY(-.35rem);
+			transition: 0.2s;
+		}
+
+		.toggle-button {
+			position: absolute;
+			margin: 0.3rem 0 0 0;
+			left: 0;
+		}
+
+		.hardware {
+			text-align: center;
+			color: #333;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			max-width: 100%;
+
+			.hardware-name {
+				font-size: .75rem;
+			}
+
+			.hardware-tags {
+				position: relative;
+				display: flex;
+				flex-direction: row;
+				flex-wrap: nowrap;
+				justify-content: center;
+
+				.hardware-tag {
+					font-size: .5rem;
+					margin: .25rem .1rem;
+					padding: .25rem;
+					border: 1px solid #ddd;
+					border-radius: 4px;
+					cursor: pointer;
+
+					&.core {
+						background-color: darkmagenta;
+						color: #fff;
+					}
+
+					&.pc1 {
+						background-color: cornflowerblue;
+						color: #fff;
+					}
+
+					&.c1 {
+						background-color: rgb(42, 85, 165);
+						color: #fff;
+					}
+
+					&.pc2 {
+						background-color:forestgreen;
+						color: #fff;
+					}
+
+					&.c2 {
+						background-color: rgb(43, 96, 43);
+						color: #fff;
+					}
+
+					&.wait {
+						background-color: darkgoldenrod;
+						color: #fff;
+					}
+
+					&.get {
+						background-color: rgb(241, 207, 119);
+						color: #000;
+					}
+
+					&.storing {
+						background-color: #555;
+						color: #fff;
+					}
+
+					&.retrieval {
+						background-color: antiquewhite ;
+						color: #000;
+					}
+
+					&.post {
+						background-color:darkseagreen;
+						color: #fff;
+					}
+
+					&.power-grid {
+						background-color: blanchedalmond;
+						color: #000;
+					}
+
+					&.solar-generator {
+						background-color: chartreuse;
+						color: #000;
+					}
+				}
+			}
+		}
+
+		.miners-container {
+			position: relative;
+			display: flex;
+			flex-direction: row;
+			flex-wrap: wrap;
+			justify-content: center;
+
+			margin-top: .5rem;
+			padding-top: .5rem;
+			border-top: 1px solid #ddd;
+		
+			.miner {
+				font-size: .5rem;
+				margin: .25rem .1rem;
+				padding: .25rem;
+				border: 1px solid #ddd;
+				border-radius: 4px;
+				cursor: pointer;
+
+				&.active {
+					background-color: #333;
+					color: #fff;
+				}
+			}
+		}
+
+		.space-name {
+			position: absolute;
+			margin: 0rem 0 .25rem 0;
+			bottom: 0.65rem;
+			text-align: center;
+			width: 10rem;
+			min-width: 10rem;
+			max-width: 10rem;
+			border-top: 1px solid #ccc;
+			font-weight: bold;
+			color: #333;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			max-width: 100%;
+
+			&:hover {
+				transform: translateY(-.35rem);
+				transition: 0.2s;
+			}
+		}
+	}
+
+	@media (max-width: 1024px) {
+	}
+
+	@media (max-aspect-ratio: 13/9) and (orientation: portrait), (max-width: 800px) {
+	}
+}
+
+.common-hardware-light {
+	@extend .common-hardware !optional;
+
+	.space-icon {
+		background-image: url('~@/assets/rack.png');
+	}
+}

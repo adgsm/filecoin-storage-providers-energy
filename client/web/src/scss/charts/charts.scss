@@ -1,0 +1,14 @@
+@import "~@/node_modules/@vuepic/vue-datepicker/dist/main.css";
+
+.common-charts {
+
+	@media (max-width: 1024px) {
+	}
+
+	@media (max-aspect-ratio: 13/9) and (orientation: portrait), (max-width: 800px) {
+	}
+}
+
+.common-charts-light {
+	@extend .common-charts !optional;
+}

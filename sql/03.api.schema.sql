@@ -525,3 +525,26 @@ CREATE OR REPLACE FUNCTION filecoin_storage_providers_energy_api.search_energy(I
 		END LOOP;
 	END;
 $search_energy$ LANGUAGE plpgsql;
+
+--
+-- List all racks / spaces for selecte dstorage provider
+--
+DROP TYPE response_list_spaces CASCADE;
+CREATE TYPE response_list_spaces AS ("space" VARCHAR(255), "order" INTEGER);
+
+--DROP FUNCTION IF EXISTS filecoin_storage_providers_energy_api.list_spaces(IN in_storage_provider_id INTEGER);
+CREATE OR REPLACE FUNCTION filecoin_storage_providers_energy_api.list_spaces(IN in_storage_provider_id INTEGER) RETURNS SETOF response_list_spaces AS $list_spaces$
+	DECLARE
+		rcrd response_list_spaces;
+	BEGIN
+		-- resultset
+		FOR rcrd IN
+			SELECT DISTINCT "rack", NULLIF(regexp_replace("rack", '\D', '', 'g'), '')::INTEGER AS "order"
+				FROM filecoin_storage_providers_energy_api.hardware
+				WHERE storage_provider_id = storage_provider_id
+				ORDER BY NULLIF(regexp_replace("rack", '\D', '', 'g'), '')::INTEGER ASC
+		LOOP
+			RETURN NEXT rcrd;
+		END LOOP;
+	END;
+$list_spaces$ LANGUAGE plpgsql;
