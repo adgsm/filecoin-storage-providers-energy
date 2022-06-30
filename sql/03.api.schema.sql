@@ -192,10 +192,12 @@ DROP TYPE response_search_hardware CASCADE;
 CREATE TYPE response_search_hardware AS (hardware_id INTEGER, storage_provider_id INTEGER, hardware_name VARCHAR(255),
 	hardware_functions VARCHAR(255)[], rack VARCHAR(255), miner_id VARCHAR(255), ip VARCHAR(255), location VARCHAR(255), description TEXT);
 
---DROP FUNCTION IF EXISTS filecoin_storage_providers_energy_api.search_hardware(IN in_storage_provider_id INTEGER, IN in_name VARCHAR(255), IN in_miners VARCHAR(255)[], IN in_functions VARCHAR(255)[], IN in_racks VARCHAR(255)[], IN in_locations VARCHAR(255)[]);
-CREATE OR REPLACE FUNCTION filecoin_storage_providers_energy_api.search_hardware(IN in_storage_provider_id INTEGER, IN in_name VARCHAR(255), IN in_miners VARCHAR(255)[], IN in_functions VARCHAR(255)[], IN in_racks VARCHAR(255)[], IN in_locations VARCHAR(255)[]) RETURNS SETOF response_search_hardware AS $search_hardware$
+--DROP FUNCTION IF EXISTS filecoin_storage_providers_energy_api.search_hardware(IN in_storage_provider_id INTEGER, IN in_names VARCHAR(255)[], IN in_miners VARCHAR(255)[], IN in_functions VARCHAR(255)[], IN in_racks VARCHAR(255)[], IN in_locations VARCHAR(255)[]);
+CREATE OR REPLACE FUNCTION filecoin_storage_providers_energy_api.search_hardware(IN in_storage_provider_id INTEGER, IN in_names VARCHAR(255)[], IN in_miners VARCHAR(255)[], IN in_functions VARCHAR(255)[], IN in_racks VARCHAR(255)[], IN in_locations VARCHAR(255)[]) RETURNS SETOF response_search_hardware AS $search_hardware$
 	DECLARE
-		s_name VARCHAR = '';
+		names_length SMALLINT = array_length(in_names, 1);
+		names VARCHAR = '';
+		counter_names SMALLINT = 1;
 		miners_length SMALLINT = array_length(in_miners, 1);
 		miners VARCHAR = '';
 		counter_miners SMALLINT = 1;
@@ -209,10 +211,17 @@ CREATE OR REPLACE FUNCTION filecoin_storage_providers_energy_api.search_hardware
 		functions VARCHAR = '';
 		rcrd response_search_hardware;
 	BEGIN
-
-		-- constructing search sub-query per provided name
-		IF (in_name IS NOT NULL) THEN
-			s_name = format(' AND lower("name") LIKE lower(%L)', concat('%', in_name, '%'));
+		-- constructing search sub-query per provided names
+		IF (names_length > 0) THEN
+			names = concat(names, 'AND (');
+			WHILE counter_names <= names_length LOOP
+				IF (counter_names > 1) THEN
+					names = concat(names, ' OR ');
+				END IF;
+				names = concat(names, format('lower("name") LIKE lower(%L)', concat('%', translate(in_names[counter_names], '''', ''), '%')));
+				counter_names = counter_names + 1;
+			END LOOP;
+			names = concat(names, ')');
 		END IF;
 
 		-- constructing search sub-query per provided miners
@@ -272,7 +281,7 @@ CREATE OR REPLACE FUNCTION filecoin_storage_providers_energy_api.search_hardware
 			%s
 			ORDER BY "id" ASC;',
 			in_storage_provider_id,
-			s_name,
+			names,
 			miners,
 			racks,
 			locations,
@@ -292,10 +301,12 @@ CREATE TYPE response_search_power AS (hardware_id INTEGER, storage_provider_id I
 	hardware_functions VARCHAR(255)[], rack VARCHAR(255), miner_id VARCHAR(255), ip VARCHAR(255), location VARCHAR(255),
 	description TEXT, power DOUBLE PRECISION, time TIMESTAMPTZ);
 
---DROP FUNCTION IF EXISTS filecoin_storage_providers_energy_api.search_power(IN in_storage_provider_id INTEGER, IN in_name VARCHAR(255), IN in_miners VARCHAR(255)[], IN in_functions VARCHAR(255)[], IN in_racks VARCHAR(255)[], IN in_locations VARCHAR(255)[], IN in_from TIMESTAMPTZ, IN in_to TIMESTAMPTZ, IN in_offset INTEGER, IN in_limit INTEGER);
-CREATE OR REPLACE FUNCTION filecoin_storage_providers_energy_api.search_power(IN in_storage_provider_id INTEGER, IN in_name VARCHAR(255), IN in_miners VARCHAR(255)[], IN in_functions VARCHAR(255)[], IN in_racks VARCHAR(255)[], IN in_locations VARCHAR(255)[], IN in_from TIMESTAMPTZ, IN in_to TIMESTAMPTZ, IN in_offset INTEGER, IN in_limit INTEGER) RETURNS SETOF response_search_power AS $search_power$
+--DROP FUNCTION IF EXISTS filecoin_storage_providers_energy_api.search_power(IN in_storage_provider_id INTEGER, IN in_names VARCHAR(255)[], IN in_miners VARCHAR(255)[], IN in_functions VARCHAR(255)[], IN in_racks VARCHAR(255)[], IN in_locations VARCHAR(255)[], IN in_from TIMESTAMPTZ, IN in_to TIMESTAMPTZ, IN in_offset INTEGER, IN in_limit INTEGER);
+CREATE OR REPLACE FUNCTION filecoin_storage_providers_energy_api.search_power(IN in_storage_provider_id INTEGER, IN in_names VARCHAR(255)[], IN in_miners VARCHAR(255)[], IN in_functions VARCHAR(255)[], IN in_racks VARCHAR(255)[], IN in_locations VARCHAR(255)[], IN in_from TIMESTAMPTZ, IN in_to TIMESTAMPTZ, IN in_offset INTEGER, IN in_limit INTEGER) RETURNS SETOF response_search_power AS $search_power$
 	DECLARE
-		s_name VARCHAR = '';
+		names_length SMALLINT = array_length(in_names, 1);
+		names VARCHAR = '';
+		counter_names SMALLINT = 1;
 		miners_length SMALLINT = array_length(in_miners, 1);
 		miners VARCHAR = '';
 		counter_miners SMALLINT = 1;
@@ -321,13 +332,21 @@ CREATE OR REPLACE FUNCTION filecoin_storage_providers_energy_api.search_power(IN
 		IF (in_offset IS NULL) THEN
 			in_offset = 0;
 		END IF;
-		IF (in_limit IS NULL OR in_limit > 10000) THEN
-			in_limit = 10000;
+		IF (in_limit IS NULL OR in_limit > 1000000) THEN
+			in_limit = 1000000;
 		END IF;
 
-		-- constructing search sub-query per provided name
-		IF (in_name IS NOT NULL) THEN
-			s_name = format(' AND lower(h."name") LIKE lower(%L)', concat('%', in_name, '%'));
+		-- constructing search sub-query per provided names
+		IF (names_length > 0) THEN
+			names = concat(names, 'AND (');
+			WHILE counter_names <= names_length LOOP
+				IF (counter_names > 1) THEN
+					names = concat(names, ' OR ');
+				END IF;
+				names = concat(names, format('lower("name") LIKE lower(%L)', concat('%', translate(in_names[counter_names], '''', ''), '%')));
+				counter_names = counter_names + 1;
+			END LOOP;
+			names = concat(names, ')');
 		END IF;
 
 		-- constructing search sub-query per provided miners
@@ -392,7 +411,7 @@ CREATE OR REPLACE FUNCTION filecoin_storage_providers_energy_api.search_power(IN
 			ORDER BY p."time" ASC OFFSET %s LIMIT %s;',
 			in_storage_provider_id,
 			in_from, in_to,
-			s_name,
+			names,
 			miners,
 			racks,
 			locations,
@@ -413,10 +432,12 @@ CREATE TYPE response_search_energy AS (hardware_id INTEGER, storage_provider_id 
 	hardware_functions VARCHAR(255)[], rack VARCHAR(255), miner_id VARCHAR(255), ip VARCHAR(255), location VARCHAR(255),
 	description TEXT, energy DOUBLE PRECISION, time TIMESTAMPTZ);
 
---DROP FUNCTION IF EXISTS filecoin_storage_providers_energy_api.search_energy(IN in_storage_provider_id INTEGER, IN in_name VARCHAR(255), IN in_miners VARCHAR(255)[], IN in_functions VARCHAR(255)[], IN in_racks VARCHAR(255)[], IN in_locations VARCHAR(255)[], IN in_from TIMESTAMPTZ, IN in_to TIMESTAMPTZ, IN in_offset INTEGER, IN in_limit INTEGER);
-CREATE OR REPLACE FUNCTION filecoin_storage_providers_energy_api.search_energy(IN in_storage_provider_id INTEGER, IN in_name VARCHAR(255), IN in_miners VARCHAR(255)[], IN in_functions VARCHAR(255)[], IN in_racks VARCHAR(255)[], IN in_locations VARCHAR(255)[], IN in_from TIMESTAMPTZ, IN in_to TIMESTAMPTZ, IN in_offset INTEGER, IN in_limit INTEGER) RETURNS SETOF response_search_energy AS $search_energy$
+--DROP FUNCTION IF EXISTS filecoin_storage_providers_energy_api.search_energy(IN in_storage_provider_id INTEGER, IN in_names VARCHAR(255)[], IN in_miners VARCHAR(255)[], IN in_functions VARCHAR(255)[], IN in_racks VARCHAR(255)[], IN in_locations VARCHAR(255)[], IN in_from TIMESTAMPTZ, IN in_to TIMESTAMPTZ, IN in_offset INTEGER, IN in_limit INTEGER);
+CREATE OR REPLACE FUNCTION filecoin_storage_providers_energy_api.search_energy(IN in_storage_provider_id INTEGER, IN in_names VARCHAR(255)[], IN in_miners VARCHAR(255)[], IN in_functions VARCHAR(255)[], IN in_racks VARCHAR(255)[], IN in_locations VARCHAR(255)[], IN in_from TIMESTAMPTZ, IN in_to TIMESTAMPTZ, IN in_offset INTEGER, IN in_limit INTEGER) RETURNS SETOF response_search_energy AS $search_energy$
 	DECLARE
-		s_name VARCHAR = '';
+		names_length SMALLINT = array_length(in_names, 1);
+		names VARCHAR = '';
+		counter_names SMALLINT = 1;
 		miners_length SMALLINT = array_length(in_miners, 1);
 		miners VARCHAR = '';
 		counter_miners SMALLINT = 1;
@@ -442,13 +463,21 @@ CREATE OR REPLACE FUNCTION filecoin_storage_providers_energy_api.search_energy(I
 		IF (in_offset IS NULL) THEN
 			in_offset = 0;
 		END IF;
-		IF (in_limit IS NULL OR in_limit > 10000) THEN
-			in_limit = 10000;
+		IF (in_limit IS NULL OR in_limit > 1000000) THEN
+			in_limit = 1000000;
 		END IF;
 
-		-- constructing search sub-query per provided name
-		IF (in_name IS NOT NULL) THEN
-			s_name = format(' AND lower(h."name") LIKE lower(%L)', concat('%', in_name, '%'));
+		-- constructing search sub-query per provided names
+		IF (names_length > 0) THEN
+			names = concat(names, 'AND (');
+			WHILE counter_names <= names_length LOOP
+				IF (counter_names > 1) THEN
+					names = concat(names, ' OR ');
+				END IF;
+				names = concat(names, format('lower("name") LIKE lower(%L)', concat('%', translate(in_names[counter_names], '''', ''), '%')));
+				counter_names = counter_names + 1;
+			END LOOP;
+			names = concat(names, ')');
 		END IF;
 
 		-- constructing search sub-query per provided miners
@@ -513,7 +542,7 @@ CREATE OR REPLACE FUNCTION filecoin_storage_providers_energy_api.search_energy(I
 			ORDER BY p."time" ASC OFFSET %s LIMIT %s;',
 			in_storage_provider_id,
 			in_from, in_to,
-			s_name,
+			names,
 			miners,
 			racks,
 			locations,

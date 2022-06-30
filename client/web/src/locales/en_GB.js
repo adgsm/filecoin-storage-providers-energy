@@ -1,6 +1,8 @@
 export default {
 	'message': {
-		'schemas': {
+		'charts': {
+			'get-data': 'Get the data & create chart',
+			'power-chart': 'Power consumtion'
 		}
 	}
 }

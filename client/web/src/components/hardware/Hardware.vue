@@ -10,32 +10,35 @@
 					<div class="hardware-tags">
 						<div v-for="(tag, tagIndex) in hw.Functions" :key="tagIndex"
 							:class="['hardware-tag', {
-								'core': tag.toLowerCase() == 'core lotus',
-								'pc1': tag.toLowerCase() == 'pc1',
-								'c1': tag.toLowerCase() == 'c1',
-								'pc2': tag.toLowerCase() == 'pc2',
-								'c2': tag.toLowerCase() == 'c2',
-								'wait': tag.toLowerCase() == 'wait',
-								'get': tag.toLowerCase() == 'get',
-								'storing': tag.toLowerCase() == 'storing',
-								'retrieval': tag.toLowerCase() == 'retrieval',
-								'post': tag.toLowerCase() == 'post',
-								'solar-generator': tag.toLowerCase() == 'solar generator',
-								'power-grid': tag.toLowerCase() == 'power grid'
+								'core': hardwareSelected[hw.Name] && tag.toLowerCase() == 'core lotus',
+								'pc1': hardwareSelected[hw.Name] && tag.toLowerCase() == 'pc1',
+								'c1': hardwareSelected[hw.Name] && tag.toLowerCase() == 'c1',
+								'pc2': hardwareSelected[hw.Name] && tag.toLowerCase() == 'pc2',
+								'c2': hardwareSelected[hw.Name] && tag.toLowerCase() == 'c2',
+								'wait': hardwareSelected[hw.Name] && tag.toLowerCase() == 'wait',
+								'get': hardwareSelected[hw.Name] && tag.toLowerCase() == 'get',
+								'storing': hardwareSelected[hw.Name] && tag.toLowerCase() == 'storing',
+								'retrieval': hardwareSelected[hw.Name] && tag.toLowerCase() == 'retrieval',
+								'post': hardwareSelected[hw.Name] && tag.toLowerCase() == 'post',
+								'solar-generator': hardwareSelected[hw.Name] && tag.toLowerCase() == 'solar generator',
+								'power-grid': hardwareSelected[hw.Name] && tag.toLowerCase() == 'power grid'
 								}]">
 							{{ tag }}
 						</div>
 					</div>
+					<i :class="['pi', 'hardware-toggle-button', {'pi-circle': !hardwareSelected[hw.Name], 'pi-check-circle': hardwareSelected[hw.Name]}]"
+						@click="toggleHardware(hw.Name)"></i>
 				</div>
 			</div>
 			<div class="miners-container">
 				<div v-for="(miner, minerIndex) in hardwareMiners[space.Space]" :key="minerIndex"
-					:class="['miner', {'active': true}]">
+					:class="['miner', {'active': minersSelected.indexOf(miner) > -1}]"
+					@click="toggleMiner(miner)">
 					{{ miner }}
 				</div>
 			</div>
 			<div class="space-name">
-				{{ space.Space }}
+				<div class="space-name-text">{{ space.Space }}</div>
 				<i :class="['pi', 'toggle-button', {'pi-angle-down': !hardwareExpanded, 'pi-angle-up': hardwareExpanded}]"
 					@click="hardwareExpanded = !hardwareExpanded"></i>
 			</div>

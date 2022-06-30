@@ -28,13 +28,11 @@ const computed = {
 const watch = {
 	async storageProvider(state, before) {
 		this.spaces = (await this.getSpaces(state)).data
-		console.log(this.spaces)
 		for await(const space of this.spaces) {
 			this.hardware[space.Space] = (await this.getSpaceHardware(state, space.Space)).data
 		}
-		console.log(this.hardware)
 		this.findHardwareMiners()
-		console.log(this.hardwareMiners)
+		this.findMinersHardware()
 	}
 }
 
@@ -72,7 +70,6 @@ const methods = {
 	findHardwareMiners() {
 		const hardware = Object.keys(this.hardware)
 		for (const hw of hardware) {
-			console.log(hw, this.hardware[hw])
 			for (const rackhw of this.hardware[hw]) {
 				if(this.hardwareMiners[hw] == undefined)
 					this.hardwareMiners[hw] = []
@@ -80,6 +77,66 @@ const methods = {
 					this.hardwareMiners[hw].push(rackhw.MinerId)
 			}
 		}
+	},
+	findMinersHardware() {
+		const hardware = Object.keys(this.hardware)
+		for (const hw of hardware) {
+			for (const rackhw of this.hardware[hw]) {
+				if(this.minersHardware[rackhw.MinerId] == undefined)
+					this.minersHardware[rackhw.MinerId] = []
+				if(this.minersHardware[rackhw.MinerId].indexOf(rackhw.Name) == -1)
+					this.minersHardware[rackhw.MinerId].push(rackhw.Name)
+			}
+		}
+	},
+	toggleMiner(miner) {
+		const index = this.minersSelected.indexOf(miner)
+		if(index >  -1)
+			this.minersSelected.splice(index, 1)
+		else
+			this.minersSelected.push(miner)
+
+		this.selectHardwarePerMinersSelection()
+	},
+	selectHardwarePerMinersSelection() {
+		this.hardwareSelected = {}
+		for (const miner of this.minersSelected) {
+			const minersHardware = this.minersHardware[miner]
+			for (const mhw of minersHardware) {
+				if(this.hardwareSelected[mhw] == undefined)
+				this.hardwareSelected[mhw] = true
+			}
+		}
+
+		this.announceSelections()
+	},
+	toggleHardware(hardware) {
+		if(this.hardwareSelected[hardware] != undefined)
+			delete this.hardwareSelected[hardware]
+		else
+			this.hardwareSelected[hardware] = true
+
+		this.selectMinersPerHardwareSelection()
+	},
+	selectMinersPerHardwareSelection() {
+		let contains = (arr, target) => target.every(v => arr.includes(v))
+		this.minersSelected.length = 0
+		const selectedHardware = Object.keys(this.hardwareSelected)
+		const miners = Object.keys(this.minersHardware)
+		for (const miner of miners) {
+			const minersHardware = this.minersHardware[miner]
+			const contains = (selectedHardware, minersHardware) => minersHardware.every(v => selectedHardware.includes(v))
+			if(contains(selectedHardware, minersHardware))
+				this.minersSelected.push(miner)
+		}
+
+		this.announceSelections()
+	},
+	announceSelections() {
+		this.$emit('announce-selections', {
+			miners: this.minersSelected,
+			hardware: this.hardwareSelected
+		})
 	}
 }
 
@@ -104,6 +161,9 @@ export default {
 			spaces: [],
 			hardware: {},
 			hardwareMiners: {},
+			minersHardware: {},
+			hardwareSelected: {},
+			minersSelected: [],
 			hardwareExpanded: false
 		}
 	},

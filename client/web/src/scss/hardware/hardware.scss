@@ -1,4 +1,6 @@
 @import "~@/node_modules/primeicons/primeicons.css";
+@import "~@/node_modules/primevue/resources/themes/saga-blue/theme.css";
+@import "~@/node_modules/primevue/resources/primevue.min.css";
 
 .common-hardware {
 	position: relative;
@@ -8,6 +10,7 @@
 	justify-content: flex-start;
 
 	overflow-x: auto;
+	overflow-y: visible;
 	.space-icon {
 		margin: .5rem;
 		padding: 7rem .5rem 2rem .5rem;
@@ -32,12 +35,6 @@
 			transition: 0.2s;
 		}
 
-		.toggle-button {
-			position: absolute;
-			margin: 0.3rem 0 0 0;
-			left: 0;
-		}
-
 		.hardware {
 			text-align: center;
 			color: #333;
@@ -45,6 +42,14 @@
 			overflow: hidden;
 			text-overflow: ellipsis;
 			max-width: 100%;
+			border: 1px solid #ddd;
+			border-radius: 4px;
+			margin: 1px 0;
+
+			.hardware-toggle-button {
+				position: absolute;
+				margin: -2.8rem 0 0 3rem;
+			}
 
 			.hardware-name {
 				font-size: .75rem;
@@ -159,20 +164,31 @@
 			margin: 0rem 0 .25rem 0;
 			bottom: 0.65rem;
 			text-align: center;
-			width: 10rem;
-			min-width: 10rem;
-			max-width: 10rem;
+			width: 9rem;
+			min-width: 9rem;
+			max-width: 9rem;
 			border-top: 1px solid #ccc;
-			font-weight: bold;
-			color: #333;
-			white-space: nowrap;
-			overflow: hidden;
-			text-overflow: ellipsis;
-			max-width: 100%;
 
 			&:hover {
 				transform: translateY(-.35rem);
 				transition: 0.2s;
+			}
+
+			.space-name-text {
+				width: 80%;
+				max-width: 80%;
+				font-weight: bold;
+				color: #333;
+				white-space: nowrap;
+				overflow: hidden;
+				text-overflow: ellipsis;
+				margin: 0 auto;
+				}
+
+			.toggle-button {
+				position: absolute;
+				margin: -1.1rem 0 0 0;
+				left: 0;
 			}
 		}
 	}

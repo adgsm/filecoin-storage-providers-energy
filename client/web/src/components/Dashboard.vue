@@ -6,8 +6,10 @@
 					@storage-provider-changed="(sp) => {storageProvider = sp}" />
 			</div>
 			<div class="content-container">
-				<Hardware :storage-provider="storageProvider" />
-				<Charts />
+				<Hardware :storage-provider="storageProvider"
+					@announce-selections="(selections) => {hardwareSelections = selections}" />
+				<Charts :storage-provider="storageProvider"
+					:hardware-selections="hardwareSelections" />
 			</div>
 		</div>
 		<div class="footer-container">

@@ -54,7 +54,8 @@ export default {
 	name: 'Dashboard',
 	data () {
 		return {
-			storageProvider: null
+			storageProvider: null,
+			hardwareSelections: {}
 		}
 	},
 	created: created,

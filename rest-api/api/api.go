@@ -69,15 +69,15 @@ func initRoutes(r *mux.Router) {
 
 	// search / filter storage provider's hardware
 	r.HandleFunc("/hardware", hardware).Methods(http.MethodGet)
-	r.HandleFunc("/hardware?storage_provider_id={storage_provider_id}&name={name}&racks={racks}&miners={miners}&locations={locations}&functions={functions}", hardware).Methods(http.MethodGet)
+	r.HandleFunc("/hardware?storage_provider_id={storage_provider_id}&names={names}&racks={racks}&miners={miners}&locations={locations}&functions={functions}", hardware).Methods(http.MethodGet)
 
 	// search / filter storage provider's power consumption
 	r.HandleFunc("/power", power).Methods(http.MethodGet)
-	r.HandleFunc("/power?storage_provider_id={storage_provider_id}&name={name}&racks={racks}&miners={miners}&locations={locations}&functions={functions}&from={from}&to={to}&offset={offset}&limit={limit}", power).Methods(http.MethodGet)
+	r.HandleFunc("/power?storage_provider_id={storage_provider_id}&names={names}&racks={racks}&miners={miners}&locations={locations}&functions={functions}&from={from}&to={to}&offset={offset}&limit={limit}", power).Methods(http.MethodGet)
 
 	// search / filter storage provider's energy consumption
 	r.HandleFunc("/energy", energy).Methods(http.MethodGet)
-	r.HandleFunc("/energy?storage_provider_id={storage_provider_id}&name={name}&racks={racks}&miners={miners}&locations={locations}&functions={functions}&from={from}&to={to}&offset={offset}&limit={limit}", energy).Methods(http.MethodGet)
+	r.HandleFunc("/energy?storage_provider_id={storage_provider_id}&names={names}&racks={racks}&miners={miners}&locations={locations}&functions={functions}&from={from}&to={to}&offset={offset}&limit={limit}", energy).Methods(http.MethodGet)
 
 	// list racks / spaces on provided storage provider id
 	r.HandleFunc("/list-spaces", listSpaces).Methods(http.MethodGet)
@@ -198,19 +198,30 @@ func hardware(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// check for other provided parameters
-	name := queryParams.Get("name")
+	names := queryParams.Get("names")
 	miners := queryParams.Get("miners")
 	functions := queryParams.Get("functions")
 	racks := queryParams.Get("racks")
 	locations := queryParams.Get("locations")
 
 	internal.WriteLog("info", fmt.Sprintf("Searching storage provider's hardware with following parameters:"+
-		"storage provider id: %d, name '%s', miners '%s', functions '%s', racks '%s', locations '%s'.",
-		storageProviderId, internal.SqlNullableString(name).String, internal.SqlNullableString(miners).String,
+		"storage provider id: %d, names '%s', miners '%s', functions '%s', racks '%s', locations '%s'.",
+		storageProviderId, internal.SqlNullableString(names).String, internal.SqlNullableString(miners).String,
 		internal.SqlNullableString(functions).String, internal.SqlNullableString(racks).String,
 		internal.SqlNullableString(locations).String), "api")
 
 	// split search words into sql array
+	var namesArr interface {
+		sql.Scanner
+		driver.Valuer
+	}
+
+	if len(names) == 0 {
+		namesArr = pq.Array([]sql.NullString{})
+	} else {
+		namesArr = pq.Array(strings.Split(internal.SqlNullableString(names).String, ","))
+	}
+
 	var minersArr interface {
 		sql.Scanner
 		driver.Valuer
@@ -256,8 +267,8 @@ func hardware(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// search hardware with provided parameters
-	rows, rowsErr := db.Query(context.Background(), "select * from filecoin_storage_providers_energy_api.search_hardware($1::integer, $2::varchar(255), $3::varchar(255)[], $4::varchar(255)[], $5::varchar(255)[], $6::varchar(255)[]);",
-		storageProviderId, internal.SqlNullableString(name), minersArr, functionsArr, racksArr, locationsArr)
+	rows, rowsErr := db.Query(context.Background(), "select * from filecoin_storage_providers_energy_api.search_hardware($1::integer, $2::varchar(255)[], $3::varchar(255)[], $4::varchar(255)[], $5::varchar(255)[], $6::varchar(255)[]);",
+		storageProviderId, namesArr, minersArr, functionsArr, racksArr, locationsArr)
 
 	if rowsErr != nil {
 		fmt.Print(rowsErr.Error())
@@ -389,7 +400,7 @@ func power(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// check for other provided parameters
-	name := queryParams.Get("name")
+	names := queryParams.Get("names")
 	miners := queryParams.Get("miners")
 	functions := queryParams.Get("functions")
 	racks := queryParams.Get("racks")
@@ -426,13 +437,24 @@ func power(w http.ResponseWriter, r *http.Request) {
 	}
 
 	internal.WriteLog("info", fmt.Sprintf("Searching storage provider's power consumption with following parameters:"+
-		"storage provider id: %d, name '%s', miners '%s', functions '%s', racks '%s', locations '%s'"+
+		"storage provider id: %d, names '%s', miners '%s', functions '%s', racks '%s', locations '%s'"+
 		"from '%s', to '%s', offset '%d', limit '%d'.",
-		storageProviderId, internal.SqlNullableString(name).String, internal.SqlNullableString(miners).String,
+		storageProviderId, internal.SqlNullableString(names).String, internal.SqlNullableString(miners).String,
 		internal.SqlNullableString(functions).String, internal.SqlNullableString(racks).String,
 		internal.SqlNullableString(locations).String, from, to, off, lmt), "api")
 
 	// split search words into sql array
+	var namesArr interface {
+		sql.Scanner
+		driver.Valuer
+	}
+
+	if len(names) == 0 {
+		namesArr = pq.Array([]sql.NullString{})
+	} else {
+		namesArr = pq.Array(strings.Split(internal.SqlNullableString(names).String, ","))
+	}
+
 	var minersArr interface {
 		sql.Scanner
 		driver.Valuer
@@ -478,8 +500,8 @@ func power(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// search power consumption with provided parameters
-	rows, rowsErr := db.Query(context.Background(), "select * from filecoin_storage_providers_energy_api.search_power($1::integer, $2::varchar(255), $3::varchar(255)[], $4::varchar(255)[], $5::varchar(255)[], $6::varchar(255)[], $7::timestamptz, $8::timestamptz, $9::integer, $10::integer);",
-		storageProviderId, internal.SqlNullableString(name), minersArr, functionsArr, racksArr, locationsArr,
+	rows, rowsErr := db.Query(context.Background(), "select * from filecoin_storage_providers_energy_api.search_power($1::integer, $2::varchar(255)[], $3::varchar(255)[], $4::varchar(255)[], $5::varchar(255)[], $6::varchar(255)[], $7::timestamptz, $8::timestamptz, $9::integer, $10::integer);",
+		storageProviderId, namesArr, minersArr, functionsArr, racksArr, locationsArr,
 		from, to, off, lmt)
 
 	if rowsErr != nil {
@@ -613,7 +635,7 @@ func energy(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// check for other provided parameters
-	name := queryParams.Get("name")
+	names := queryParams.Get("names")
 	miners := queryParams.Get("miners")
 	functions := queryParams.Get("functions")
 	racks := queryParams.Get("racks")
@@ -650,13 +672,24 @@ func energy(w http.ResponseWriter, r *http.Request) {
 	}
 
 	internal.WriteLog("info", fmt.Sprintf("Searching storage provider's energy consumption with following parameters:"+
-		"storage provider id: %d, name '%s', miners '%s', functions '%s', racks '%s', locations '%s'"+
+		"storage provider id: %d, names '%s', miners '%s', functions '%s', racks '%s', locations '%s'"+
 		"from '%s', to '%s', offset '%d', limit '%d'.",
-		storageProviderId, internal.SqlNullableString(name).String, internal.SqlNullableString(miners).String,
+		storageProviderId, internal.SqlNullableString(names).String, internal.SqlNullableString(miners).String,
 		internal.SqlNullableString(functions).String, internal.SqlNullableString(racks).String,
 		internal.SqlNullableString(locations).String, from, to, off, lmt), "api")
 
 	// split search words into sql array
+	var namesArr interface {
+		sql.Scanner
+		driver.Valuer
+	}
+
+	if len(names) == 0 {
+		namesArr = pq.Array([]sql.NullString{})
+	} else {
+		namesArr = pq.Array(strings.Split(internal.SqlNullableString(names).String, ","))
+	}
+
 	var minersArr interface {
 		sql.Scanner
 		driver.Valuer
@@ -702,8 +735,8 @@ func energy(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// search power consumption with provided parameters
-	rows, rowsErr := db.Query(context.Background(), "select * from filecoin_storage_providers_energy_api.search_energy($1::integer, $2::varchar(255), $3::varchar(255)[], $4::varchar(255)[], $5::varchar(255)[], $6::varchar(255)[], $7::timestamptz, $8::timestamptz, $9::integer, $10::integer);",
-		storageProviderId, internal.SqlNullableString(name), minersArr, functionsArr, racksArr, locationsArr,
+	rows, rowsErr := db.Query(context.Background(), "select * from filecoin_storage_providers_energy_api.search_energy($1::integer, $2::varchar(255)[], $3::varchar(255)[], $4::varchar(255)[], $5::varchar(255)[], $6::varchar(255)[], $7::timestamptz, $8::timestamptz, $9::integer, $10::integer);",
+		storageProviderId, namesArr, minersArr, functionsArr, racksArr, locationsArr,
 		from, to, off, lmt)
 
 	if rowsErr != nil {
