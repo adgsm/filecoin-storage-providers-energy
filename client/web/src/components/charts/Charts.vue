@@ -5,7 +5,8 @@
 				v-show="readyToGetData"
 				@click="getData" />
 		</div>
-		<div id="charts" class="graphs-container" />
+		<div id="power-chart" class="graphs-container" />
+		<div id="solar-power-energy-grid-chart" class="graphs-container" />
 	</section>
 </template>
 

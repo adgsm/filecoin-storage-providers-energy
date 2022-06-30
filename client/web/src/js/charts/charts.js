@@ -68,20 +68,23 @@ const mounted = async function() {
 
 const methods = {
 	async getData() {
+		await this.getPowerData()
+		await this.getPowerGenerationEnergyConsumptionData()
+	},
+	async getPowerData() {
 		const names = Object.keys(this.hardwareSelections.hardware).join(",")
 		const miners = this.hardwareSelections.miners.join(",")
 		const from = '2022-06-01T00:00:00.000Z'
 		const to = '2022-06-17T00:00:00.000Z'
 
-		let data = await this.getChartData('power', this.storageProvider, names, null, miners, null, null, from, to)
-		const timeAxisData = data
-			.map((r) => {return moment(r.Time).format('YYYY-MM-DD HH:mm Z')})
-			.slice().sort(function(a,b){return a > b}).reduce(function(a,b){if (a.slice(-1)[0] !== b) a.push(b);return a;},[])
-		const seriesSplitObj = this.groupObjectsArrayByProperty(data, 'Name')
+		let apidata = await this.getChartData('power', this.storageProvider, names, null, miners, null, null, from, to)
+		const seriesSplitObj = this.groupObjectsArrayByProperty(apidata, 'Name')
 		const seriesNames = Object.keys(seriesSplitObj)
 		let series = []
 		for (const seria of seriesNames) {
-			const data = seriesSplitObj[seria].map((s) => {return s.Power})
+			const data = seriesSplitObj[seria].map((s) => {
+				return [new Date(moment(s.Time).format('YYYY-MM-DD HH:mm Z')), s.Power]
+			})
 			series.push({
 				stack: 'Total',
 				sampling: 'lttb',
@@ -93,7 +96,30 @@ const methods = {
 			})
 		}
 
-		this.drawCharts(this.$t('message.charts.power-chart'), timeAxisData, series, seriesNames)
+		this.drawTimeChart('power-chart', this.$t('message.charts.power-chart'), series, seriesNames, [97, 100])
+	},
+	async getPowerGenerationEnergyConsumptionData() {
+		const names = 'Solar pannels'
+		const from = '2022-06-01T00:00:00.000Z'
+		const to = '2022-06-17T00:00:00.000Z'
+
+		let apidata = await this.getChartData('power', this.storageProvider, names, null, null, null, null, from, to)
+		let series = []
+		const data = apidata.map((s) => {
+			return [new Date(moment(s.Time).format('YYYY-MM-DD HH:mm Z')), s.Power]
+		})
+		series.push({
+			stack: 'Total',
+			sampling: 'lttb',
+			name: names,
+			type: 'line',
+			symbol: 'none',
+			areaStyle: {},
+			data: data
+		})
+
+		this.drawTimeChart('solar-power-energy-grid-chart', this.$t('message.charts.solar-power-energy-grid-chart'),
+			series, [names], [80, 100])
 	},
 	getChartDataChunk(endPoint, storageProvider, names, locations, miners, racks, functions, from, to, offset, limit) {
 		if(endPoint == undefined || storageProvider == undefined || from == undefined || to == undefined)
@@ -118,7 +144,6 @@ const methods = {
 					'&names=' + names + '&locations=' + locations + '&miners=' + miners +
 					'&racks=' + racks + '&functions=' + functions + '&from=' + from + '&to=' + to +
 					'&offset=' + offset + '&limit=' + limit
-console.log(getUri)
 		return axios(getUri, {
 			method: 'get'
 		})
@@ -153,66 +178,65 @@ console.log(getUri)
 
 		return data
 	},
-	drawCharts(title, timeAxisData, seriesData, legend) {
+	drawTimeChart(id, title, seriesData, legend, initialZoom) {
 		let option = {
 			title: {
-			  text: title
+				text: title
 			},
 			tooltip: {
-			  trigger: 'axis',
-			  axisPointer: {
-				type: 'cross',
-				label: {
-				  backgroundColor: '#6a7985'
+				trigger: 'axis',
+				axisPointer: {
+					type: 'cross',
+					label: {
+						backgroundColor: '#6a7985'
+					}
 				}
-			  }
 			},
 			legend: {
-			  data: legend
+				data: legend
 			},
 			dataZoom: [
-			  {
-				type: 'inside',
-				start: 97,
-				end: 100
-			  },
-			  {
-				start: 97,
-				end: 100
-			  }
+				{
+					type: 'inside',
+					start: initialZoom[0],
+					end: initialZoom[1]
+				},
+				{
+					start: initialZoom[0],
+					end: initialZoom[1]
+				}
 			],
 			toolbox: {
-			  feature: {
-				dataZoom: {
-				  yAxisIndex: 'none'
-				},
-				restore: {},
-				saveAsImage: {}
-			  }
+				feature: {
+					dataZoom: {
+						yAxisIndex: 'none'
+					},
+					restore: {},
+					saveAsImage: {}
+				}
 			},
 			xAxis: [
-			  {
-				type: 'category',
-				boundaryGap: false,
-				data: timeAxisData
-			  }
+				{
+					type: 'time',
+					boundaryGap: false
+				}
 			],
 			yAxis: [
-			  {
-				type: 'value',
-			  boundaryGap: [0, '100%']
-			  }
+				{
+					type: 'value',
+					boundaryGap: [0, '100%']
+				}
 			],
 			series: seriesData
-		  }
-
-		if(this.charts != null) {
-			this.charts.dispose()
-			this.charts = null
 		}
 
-		this.charts = ECharts.init(document.getElementById('charts'), null, {width: 'auto', height: 'auto'})
-		this.charts.setOption(option, true)
+		if(this.charts[id] != null) {
+			this.charts[id].dispose()
+			this.charts[id] = null
+		}
+
+		this.charts[id] = ECharts.init(document.getElementById(id), null, {width: 'auto', height: 'auto'})
+		this.charts[id].setOption(option, true)
 	},
 	groupObjectsArrayByProperty(arr, property) {
 		return arr.reduce(function(memo, x) {
@@ -245,7 +269,7 @@ export default {
 	data () {
 		return {
 			maxResults: 1000000,
-			chart: null
+			charts: {}
 		}
 	},
 	created: created,
