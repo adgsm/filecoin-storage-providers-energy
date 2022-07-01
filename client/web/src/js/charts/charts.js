@@ -9,6 +9,7 @@ import Button from 'primevue/button'
 
 import Datepicker from '@vuepic/vue-datepicker'
 
+import { markRaw } from 'vue'
 import * as ECharts from 'echarts/core'
 import {
   TitleComponent,
@@ -18,9 +19,9 @@ import {
   LegendComponent,
   DataZoomComponent
 } from 'echarts/components'
-import { LineChart } from 'echarts/charts'
+import { LineChart, BarChart } from 'echarts/charts'
 import { UniversalTransition } from 'echarts/features'
-import { CanvasRenderer } from 'echarts/renderers'
+import { SVGRenderer, CanvasRenderer } from 'echarts/renderers'
 
 ECharts.use([
 	TitleComponent,
@@ -30,7 +31,9 @@ ECharts.use([
 	LegendComponent,
 	DataZoomComponent,
 	LineChart,
+	BarChart,
 	CanvasRenderer,
+	SVGRenderer,
 	UniversalTransition
 ])
 
@@ -64,6 +67,10 @@ const watch = {
 }
 
 const mounted = async function() {
+	this.dates = [
+		moment().add(-7, 'day').toDate(),
+		moment().toDate()
+	]
 }
 
 const methods = {
@@ -74,13 +81,13 @@ const methods = {
 	async getPowerData() {
 		const names = Object.keys(this.hardwareSelections.hardware).join(",")
 		const miners = this.hardwareSelections.miners.join(",")
-		const from = '2022-06-01T00:00:00.000Z'
-		const to = '2022-06-17T00:00:00.000Z'
+		const from = this.dates[0].toISOString()
+		const to = this.dates[1].toISOString()
+		let series = []
 
-		let apidata = await this.getChartData('power', this.storageProvider, names, null, miners, null, null, from, to)
+		const apidata = await this.getChartData('power', this.storageProvider, names, null, miners, null, null, from, to)
 		const seriesSplitObj = this.groupObjectsArrayByProperty(apidata, 'Name')
 		const seriesNames = Object.keys(seriesSplitObj)
-		let series = []
 		for (const seria of seriesNames) {
 			const data = seriesSplitObj[seria].map((s) => {
 				return [new Date(moment(s.Time).format('YYYY-MM-DD HH:mm Z')), s.Power]
@@ -92,34 +99,112 @@ const methods = {
 				type: 'line',
 				symbol: 'none',
 				areaStyle: {},
-				data: data
+				data: data,
+				tooltip: {
+					valueFormatter: function (value) {
+						return value + ' W';
+					}
+				}
 			})
 		}
 
-		this.drawTimeChart('power-chart', this.$t('message.charts.power-chart'), series, seriesNames, [97, 100])
+		const xAxis = [
+			{
+				type: 'time',
+				boundaryGap: false
+			}
+		]
+
+		const yAxis = [
+			{
+				name: 'Power (W)',
+				type: 'value',
+				boundaryGap: [0, '100%'],
+				axisLabel: {
+					formatter: '{value} W'
+				}
+			}
+		]
+
+		this.drawTimeChart('power-chart', this.$t('message.charts.power-chart'), series, xAxis, yAxis, seriesNames, [97, 100])
 	},
 	async getPowerGenerationEnergyConsumptionData() {
-		const names = 'Solar pannels'
-		const from = '2022-06-01T00:00:00.000Z'
-		const to = '2022-06-17T00:00:00.000Z'
-
-		let apidata = await this.getChartData('power', this.storageProvider, names, null, null, null, null, from, to)
+		const powerNames = 'Solar pannels'
+		const energyNames = 'Power grid plug'
+		const from = this.dates[0].toISOString()
+		const to = this.dates[1].toISOString()
 		let series = []
-		const data = apidata.map((s) => {
+
+		const apiPowerData = await this.getChartData('power', this.storageProvider, powerNames, null, null, null, null, from, to)
+		const powerData = apiPowerData.map((s) => {
 			return [new Date(moment(s.Time).format('YYYY-MM-DD HH:mm Z')), s.Power]
 		})
+
+		const apiEnergyData = await this.getChartData('energy', this.storageProvider, energyNames, null, null, null, null, from, to)
+		const energyData = apiEnergyData.map((s) => {
+			return [new Date(moment(s.Time).format('YYYY-MM-DD HH:mm Z')), s.Energy]
+		})
+
 		series.push({
-			stack: 'Total',
 			sampling: 'lttb',
-			name: names,
+			name: powerNames,
 			type: 'line',
 			symbol: 'none',
 			areaStyle: {},
-			data: data
+			data: powerData,
+			tooltip: {
+				valueFormatter: function (value) {
+					return value + ' W';
+				}
+			}
+		},
+		{
+			sampling: 'lttb',
+			name: energyNames,
+			type: 'bar',
+			symbol: 'none',
+			areaStyle: {},
+			data: energyData,
+			yAxisIndex: 1,
+			tooltip: {
+				valueFormatter: function (value) {
+					return value + ' Wh';
+				}
+			}
 		})
 
+		const xAxis = [
+			{
+				type: 'time',
+				boundaryGap: false,
+				axisLine: { onZero: true }
+			}
+		]
+
+		const yAxis = [
+			{
+				name: 'Power (W)',
+				type: 'value',
+				boundaryGap: [0, '100%'],
+				axisLabel: {
+					formatter: '{value} W'
+				},
+				alignTicks: true
+			},
+			{
+				name: 'Energy (Wh)',
+				type: 'value',
+				boundaryGap: [0, '100%'],
+				oposite: true,
+				axisLabel: {
+					formatter: '{value} Wh'
+				},
+				alignTicks: true
+			}
+		]
+
 		this.drawTimeChart('solar-power-energy-grid-chart', this.$t('message.charts.solar-power-energy-grid-chart'),
-			series, [names], [80, 100])
+			series, xAxis, yAxis, [powerNames, energyNames], [80, 100])
 	},
 	getChartDataChunk(endPoint, storageProvider, names, locations, miners, racks, functions, from, to, offset, limit) {
 		if(endPoint == undefined || storageProvider == undefined || from == undefined || to == undefined)
@@ -144,6 +229,7 @@ const methods = {
 					'&names=' + names + '&locations=' + locations + '&miners=' + miners +
 					'&racks=' + racks + '&functions=' + functions + '&from=' + from + '&to=' + to +
 					'&offset=' + offset + '&limit=' + limit
+
 		return axios(getUri, {
 			method: 'get'
 		})
@@ -178,7 +264,7 @@ const methods = {
 
 		return data
 	},
-	drawTimeChart(id, title, seriesData, legend, initialZoom) {
+	drawTimeChart(id, title, seriesData, xAxis, yAxis, legend, initialZoom) {
 		let option = {
 			title: {
 				text: title
@@ -215,18 +301,8 @@ const methods = {
 					saveAsImage: {}
 				}
 			},
-			xAxis: [
-				{
-					type: 'time',
-					boundaryGap: false
-				}
-			],
-			yAxis: [
-				{
-					type: 'value',
-					boundaryGap: [0, '100%']
-				}
-			],
+			xAxis: xAxis,
+			yAxis: yAxis,
 			series: seriesData
 		}
 
@@ -235,7 +311,15 @@ const methods = {
 			this.charts[id] = null
 		}
 
-		this.charts[id] = ECharts.init(document.getElementById(id), null, {width: 'auto', height: 'auto'})
+		/*
+		You can choose to exit the default depth response / read-only conversion mode, and embed the original,
+		unpredictable objects into the state diagram. They can be flexible according to the situation:
+		Some values ​​should not be responsive, such as complex third-party class instances or VUE component objects.
+		Skip Proxy conversions can improve performance when rendering large numbers with non-variable data sources.
+		(https://programmerall.com/article/20052264316/)
+		*/
+		this.charts[id] = markRaw(ECharts.init(document.getElementById(id), null, {renderer: 'canvas', width: 'auto', height: 'auto'}))
+//		this.charts[id] = ECharts.init(document.getElementById(id), null, {renderer: 'svg', width: 'auto', height: 'auto'})
 		this.charts[id].setOption(option, true)
 	},
 	groupObjectsArrayByProperty(arr, property) {
@@ -245,6 +329,12 @@ const methods = {
 				return memo
 			}, {}
 		)
+	},
+	datesChanged(from, to) {
+		const back = [this.dates[0], this.dates[1]]
+		console.log(from, to)
+		if(from == null || to == null)
+			this.dates = back
 	}
 }
 
@@ -269,7 +359,8 @@ export default {
 	data () {
 		return {
 			maxResults: 1000000,
-			charts: {}
+			charts: {},
+			dates: []
 		}
 	},
 	created: created,

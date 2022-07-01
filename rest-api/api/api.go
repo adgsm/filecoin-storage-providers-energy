@@ -561,7 +561,7 @@ func energy(w http.ResponseWriter, r *http.Request) {
 		Ip                internal.NullString
 		Location          internal.NullString
 		Description       internal.NullString
-		Power             int
+		Energy            int
 		Time              time.Time
 	}
 
@@ -757,7 +757,7 @@ func energy(w http.ResponseWriter, r *http.Request) {
 		var record Record
 		if recordErr := rows.Scan(&record.Id, &record.StorageProviderId, &record.Name, &record.Functions,
 			&record.Rack, &record.MinerId, &record.Ip, &record.Location, &record.Description,
-			&record.Power, &record.Time); recordErr != nil {
+			&record.Energy, &record.Time); recordErr != nil {
 			message := fmt.Sprintf("Error occured whilst searching for storage provider's energy consumption in the the database. (%s)", recordErr.Error())
 			jsonMessage := fmt.Sprintf("{\"message\":\"%s\"}", message)
 			internal.WriteLog("error", message, "api")
