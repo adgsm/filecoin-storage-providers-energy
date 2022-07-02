@@ -9,11 +9,16 @@
 				<Hardware :storage-provider="storageProvider"
 					@announce-selections="(selections) => {hardwareSelections = selections}" />
 				<Charts :storage-provider="storageProvider"
-					:hardware-selections="hardwareSelections" />
+					:hardware-selections="hardwareSelections"
+					@loading="(l) => {loading = l}" />
 			</div>
 		</div>
 		<div class="footer-container">
 			<Footer />
+		</div>
+		<div class="loader"
+			v-show="loading">
+			<ProgressSpinner />
 		</div>
 	</section>
 </template>

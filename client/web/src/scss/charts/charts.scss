@@ -12,10 +12,12 @@
 		margin: 1rem 0;
 		
 		.btn {
-
+			order: 0;
 		}
 		.calendar {
-
+			order: 1;
+			flex-grow: 1;
+			max-width: 22rem;
 		}
 	}
 

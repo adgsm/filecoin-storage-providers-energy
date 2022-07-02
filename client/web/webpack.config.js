@@ -42,7 +42,7 @@ const common = {
 	},
 	output: {
 		path: paths.build,
-		publicPath: "/dist/",
+		publicPath: "/metered-energy-consumption/dist/",
 		filename: "[name].min.js",
 		chunkFilename: "chunks/[name].min.js",
 		clean: true

@@ -3,15 +3,16 @@
 		<div class="header">
 			<div class="btn">
 			<Button :label="$t('message.charts.get-data')" class="p-button-sm p-button p-component p-button-raised" icon="pi pi-check"
-				v-show="readyToGetData"
-				@click="getData" />
+				v-show="hardwareSelected"
+				@click="getComponentsPowerData" />
 			</div>
 			<div class="calendar">
 				<Datepicker v-model="dates" range
 					@update:modelValue="datesChanged" />
 			</div>
 		</div>
-		<div id="power-chart" class="graphs-container" />
+		<div id="power-chart" class="graphs-container"
+			v-show="showHardwarePowerChart" />
 		<div id="solar-power-energy-grid-chart" class="graphs-container" />
 	</section>
 </template>

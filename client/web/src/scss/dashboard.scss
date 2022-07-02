@@ -43,6 +43,42 @@
 		max-height: 2rem;
 	}
 
+	.loader {
+		position: fixed;
+		top: 0;
+		left: 0;
+		bottom: 0;
+		right: 0;
+		width: 100vw;
+		height: 100vh;
+		background-color: rgba(0, 0, 0, .75);
+
+		@keyframes p-progress-spinner-color {
+			100%,
+			0% {
+				stroke: #d62d20;
+			}
+			40% {
+				stroke: #0057e7;
+			}
+			66% {
+				stroke: #008744;
+			}
+			80%,
+			90% {
+				stroke: #ffa700;
+			}
+		}
+
+		text-align: center;
+
+		display: flex;
+		flex-direction: column;
+		flex-wrap: nowrap;
+		justify-content: center;
+	
+	}
+
 	@media (max-width: 1024px) {
 	}
 

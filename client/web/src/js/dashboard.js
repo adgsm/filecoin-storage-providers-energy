@@ -1,5 +1,7 @@
 import language from '@/src/mixins/i18n/language.js'
 
+import ProgressSpinner from 'primevue/progressspinner'
+
 import StorageProviders from '@/src/components/storage-providers/StorageProviders.vue'
 import Hardware from '@/src/components/hardware/Hardware.vue'
 import Charts from '@/src/components/charts/Charts.vue'
@@ -44,6 +46,7 @@ export default {
 		language
 	],
 	components: {
+		ProgressSpinner,
 		StorageProviders,
 		Hardware,
 		Charts,
@@ -54,6 +57,7 @@ export default {
 	name: 'Dashboard',
 	data () {
 		return {
+			loading: false,
 			storageProvider: null,
 			hardwareSelections: {}
 		}

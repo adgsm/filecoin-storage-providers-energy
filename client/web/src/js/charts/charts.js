@@ -57,28 +57,39 @@ const computed = {
 	themeVariety() {
 		return this.$store.getters['dashboard/getThemeVariety']
 	},
-	readyToGetData() {
+	hardwareSelected() {
 		return this.hardwareSelections != undefined &&
-			this.hardwareSelections.hardware != undefined && this.hardwareSelections.miners
+			this.hardwareSelections.hardware != undefined &&
+			this.hardwareSelections.miners != undefined &&
+			Object.keys(this.hardwareSelections.hardware).length
 	}
 }
 
 const watch = {
+	async storageProvider() {
+		await this.getPowerGenerationEnergyConsumptionData()
+	}
 }
 
 const mounted = async function() {
 	this.dates = [
-		moment().add(-7, 'day').toDate(),
-		moment().toDate()
+		moment().add((-1)*(this.history+1), 'day').toDate(),
+		moment().add(-1, 'day').toDate()
 	]
 }
 
 const methods = {
-	async getData() {
+	async getComponentsPowerData() {
+		this.showHardwarePowerChart = true
 		await this.getPowerData()
-		await this.getPowerGenerationEnergyConsumptionData()
 	},
 	async getPowerData() {
+		if(this.hardwareSelections == null || this.hardwareSelections.hardware == null
+			|| this.hardwareSelections.miners == null)
+			return
+
+		this.$emit('loading', true)
+
 		const names = Object.keys(this.hardwareSelections.hardware).join(",")
 		const miners = this.hardwareSelections.miners.join(",")
 		const from = this.dates[0].toISOString()
@@ -88,10 +99,13 @@ const methods = {
 		const apidata = await this.getChartData('power', this.storageProvider, names, null, miners, null, null, from, to)
 		const seriesSplitObj = this.groupObjectsArrayByProperty(apidata, 'Name')
 		const seriesNames = Object.keys(seriesSplitObj)
+		let max = 0
 		for (const seria of seriesNames) {
 			const data = seriesSplitObj[seria].map((s) => {
-				return [new Date(moment(s.Time).format('YYYY-MM-DD HH:mm Z')), s.Power]
+				return [new Date(s.Time), s.Power]
 			})
+			const lmax = Math.max(...data.map((d) => {return d[1]}))
+			max += lmax
 			series.push({
 				stack: 'Total',
 				sampling: 'lttb',
@@ -122,9 +136,14 @@ const methods = {
 				boundaryGap: [0, '100%'],
 				axisLabel: {
 					formatter: '{value} W'
-				}
+				},
+				min: 0,
+				max: max,
+				interval: Math.floor(max/5)
 			}
 		]
+
+		this.$emit('loading', false)
 
 		this.drawTimeChart('power-chart', this.$t('message.charts.power-chart'), series, xAxis, yAxis, seriesNames, [97, 100])
 	},
@@ -134,16 +153,80 @@ const methods = {
 		const from = this.dates[0].toISOString()
 		const to = this.dates[1].toISOString()
 		let series = []
+		let powerMin, powerMax, powerRange, powerInterval
+		let energyMin, energyMax, energyRange, energyInterval
+		let ticksBelowZero
+
+		this.$emit('loading', true)
 
 		const apiPowerData = await this.getChartData('power', this.storageProvider, powerNames, null, null, null, null, from, to)
 		const powerData = apiPowerData.map((s) => {
-			return [new Date(moment(s.Time).format('YYYY-MM-DD HH:mm Z')), s.Power]
+			return [new Date(s.Time), s.Power]
 		})
+		if(apiPowerData.length > 0) {
+			powerMin = Math.floor(Math.min(...powerData.map((d) => {return d[1]})) / 100) * 100
+			powerMax = Math.ceil(Math.max(...powerData.map((d) => {return d[1]})) / 100) * 100
+		}
+		else {
+			powerMin = 0
+			powerMax = 0
+		}
 
 		const apiEnergyData = await this.getChartData('energy', this.storageProvider, energyNames, null, null, null, null, from, to)
 		const energyData = apiEnergyData.map((s) => {
-			return [new Date(moment(s.Time).format('YYYY-MM-DD HH:mm Z')), s.Energy]
+			return [new Date(s.Time), s.Energy]
 		})
+		if(apiEnergyData.length > 0) {
+			energyMin = Math.floor(Math.min(...energyData.map((d) => {return d[1]})) / 100) * 100
+			energyMax = Math.ceil(Math.max(...energyData.map((d) => {return d[1]})) / 100) * 100
+		}
+		else {
+			energyMin = 0
+			energyMax = 0
+		}
+
+		if (energyMin > 0)
+			energyMin = 0
+
+		energyRange = (energyMin < 0) ? (Math.abs(energyMin) + energyMax) : energyMax
+		ticksBelowZero = (energyMin < 0) ? Math.ceil(Math.abs(energyMin)*5/(Math.abs(energyMin) + energyMax)) : 0
+		energyInterval = energyRange/5
+
+		if(energyInterval<= 0) {
+			energyInterval = null
+			powerInterval = null
+		}
+		else {
+			while (energyMax%energyInterval != 0) {
+				energyMax += 100
+			}
+			if (energyMin < 0) {
+				while (Math.abs(energyMin)%energyInterval != 0) {
+					energyMin -= 100
+				}
+				ticksBelowZero = Math.abs(energyMin) / energyInterval
+			}
+	
+			energyRange = (energyMin < 0) ? (Math.abs(energyMin) + energyMax) : energyMax
+	
+			if(powerMin > 0)
+				powerMin = 0
+	
+			powerRange = (powerMin < 0) ? (Math.abs(powerMin) + powerMax) : powerMax
+			powerInterval = Math.ceil((powerRange/((energyRange/energyInterval) - ticksBelowZero)) / 100 ) * 100
+			powerMin = Math.floor((-1) * ticksBelowZero * powerInterval)
+	
+			if(powerInterval > 0) {
+				while (powerMax%powerInterval != 0) {
+					powerMax += 100
+				}
+				if (powerMin < 0) {
+					while (Math.abs(powerMin)%powerInterval != 0) {
+						powerMin -= 100
+					}
+				}
+			}
+		}
 
 		series.push({
 			sampling: 'lttb',
@@ -189,7 +272,10 @@ const methods = {
 				axisLabel: {
 					formatter: '{value} W'
 				},
-				alignTicks: true
+				alignTicks: true,
+				interval : powerInterval,
+				max: powerMax,
+				min: powerMin
 			},
 			{
 				name: 'Energy (Wh)',
@@ -199,12 +285,17 @@ const methods = {
 				axisLabel: {
 					formatter: '{value} Wh'
 				},
-				alignTicks: true
+				alignTicks: true,
+				interval: energyInterval,
+				max: energyMax,
+				min: energyMin
 			}
 		]
 
+		this.$emit('loading', false)
+
 		this.drawTimeChart('solar-power-energy-grid-chart', this.$t('message.charts.solar-power-energy-grid-chart'),
-			series, xAxis, yAxis, [powerNames, energyNames], [80, 100])
+			series, xAxis, yAxis, [powerNames, energyNames], [0, 100])
 	},
 	getChartDataChunk(endPoint, storageProvider, names, locations, miners, racks, functions, from, to, offset, limit) {
 		if(endPoint == undefined || storageProvider == undefined || from == undefined || to == undefined)
@@ -265,7 +356,7 @@ const methods = {
 		return data
 	},
 	drawTimeChart(id, title, seriesData, xAxis, yAxis, legend, initialZoom) {
-		let option = {
+		let options = {
 			title: {
 				text: title
 			},
@@ -318,9 +409,8 @@ const methods = {
 		Skip Proxy conversions can improve performance when rendering large numbers with non-variable data sources.
 		(https://programmerall.com/article/20052264316/)
 		*/
-		this.charts[id] = markRaw(ECharts.init(document.getElementById(id), null, {renderer: 'canvas', width: 'auto', height: 'auto'}))
-//		this.charts[id] = ECharts.init(document.getElementById(id), null, {renderer: 'svg', width: 'auto', height: 'auto'})
-		this.charts[id].setOption(option, true)
+		this.charts[id] = markRaw(ECharts.init(document.getElementById(id), null, {renderer: this.renderer}))
+		this.charts[id].setOption(options, true)
 	},
 	groupObjectsArrayByProperty(arr, property) {
 		return arr.reduce(function(memo, x) {
@@ -330,11 +420,18 @@ const methods = {
 			}, {}
 		)
 	},
-	datesChanged(from, to) {
+	async datesChanged(dates) {
+		if(dates == null)
+			return
 		const back = [this.dates[0], this.dates[1]]
-		console.log(from, to)
-		if(from == null || to == null)
+		if(dates[0] == null || dates[1] == null) {
 			this.dates = back
+			return
+		}
+
+		if(this.showHardwarePowerChart)
+			await this.getPowerData()
+		await this.getPowerGenerationEnergyConsumptionData()
 	}
 }
 
@@ -358,9 +455,12 @@ export default {
 	name: 'Charts',
 	data () {
 		return {
+			showHardwarePowerChart: false,
 			maxResults: 1000000,
 			charts: {},
-			dates: []
+			dates: [],
+			history: 7,	// 7 days
+			renderer: 'canvas'	// svg or canvas
 		}
 	},
 	created: created,

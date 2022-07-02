@@ -28,6 +28,7 @@ const computed = {
 const watch = {
 	async storageProvider(state, before) {
 		this.spaces = (await this.getSpaces(state)).data
+			.filter((s) => {return s.Space != 'Data center installation'})
 		for await(const space of this.spaces) {
 			this.hardware[space.Space] = (await this.getSpaceHardware(state, space.Space)).data
 		}

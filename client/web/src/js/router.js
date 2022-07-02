@@ -30,7 +30,7 @@ const Dashboard = () => import('@/src/components/Dashboard.vue')
 
 const routes = [
 	{
-		path: '/',
+		path: '/metered-energy-consumption/',
 		name: 'dashboard',
 		title: 'Dashboard',
 		component: Dashboard,
