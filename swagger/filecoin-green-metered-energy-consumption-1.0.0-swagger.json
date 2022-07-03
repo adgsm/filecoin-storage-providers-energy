@@ -1,0 +1,600 @@
+{
+  "openapi" : "3.0.0",
+  "servers" : [ {
+    "url" : "https://green.filecoin.space"
+  } ],
+  "info" : {
+    "description" : "Filecoin storage providers metered energy consumption",
+    "version" : "1.0.0",
+    "title" : "Filecoin storage providers metered energy consumption",
+    "contact" : {
+      "email" : "momcilo.dzunic@protocol.ai"
+    },
+    "license" : {
+      "name" : "Apache 2.0",
+      "url" : "http://www.apache.org/licenses/LICENSE-2.0.html"
+    }
+  },
+  "paths" : {
+    "/sp-metered-energy/api/v1/storage-providers" : {
+      "get" : {
+        "summary" : "List/Filter available Storage Providers",
+        "operationId" : "storageProviders",
+        "description" : "By passing in part or whole Storage Provider name, you can search/filter Storage Providers available in the system",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "name",
+          "description" : "pass an optional Storage Provider name",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "search results matching criteria",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/StorageProvidersResponseItem"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sp-metered-energy/api/v1/list-spaces" : {
+      "get" : {
+        "summary" : "List racks",
+        "operationId" : "listSpaces",
+        "description" : "By passing in Storage Provider Id, you can list available racks",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "storage_provider_id",
+          "description" : "pass Storage Provider Id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "default": 1
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "search results matching criteria",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/StorageProvidersSpacesResponseItem"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sp-metered-energy/api/v1/hardware" : {
+      "get" : {
+        "summary" : "List Filecoin hardware available for selected Storage Provider",
+        "operationId" : "hardware",
+        "description" : "By passing in Storage Provider id, and optional comma separted list of hardware names, racks, Filecoin miner Ids, loacations and hardware functions, you can search SP's hardware available in the system",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "storage_provider_id",
+          "description" : "pass required Storage Provider Id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "default": 1
+          }
+        }, {
+          "in" : "query",
+          "name" : "names",
+          "description" : "pass an optional comma delimited list of hardware names (or parts)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "racks",
+          "description" : "pass an optional comma delimited list of rack names (or parts)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "miners",
+          "description" : "pass an optional comma delimited list of Filecoin miner IDs (or parts)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "locations",
+          "description" : "pass an optional comma delimited list of hardware locations (or parts)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "functions",
+          "description" : "pass an optional comma delimited list of hardware functions (or parts)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "search results matching criteria",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/StorageProvidersHardwareResponseItem"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sp-metered-energy/api/v1/list-space-hardware" : {
+      "get" : {
+        "summary" : "List Filecoin hardware available for selected Storage Provider and Space / Rack",
+        "operationId" : "listSpaceHardware",
+        "description" : "By passing in Storage Provider id, and space name, you can search SP's hardware available in the system",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "storage_provider_id",
+          "description" : "pass required Storage Provider Id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "default": 1
+          }
+        }, {
+          "in" : "query",
+          "name" : "space",
+          "description" : "pass required space / rack name",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "default": "Rack 1"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "search results matching criteria",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/StorageProvidersHardwareResponseItem"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sp-metered-energy/api/v1/power" : {
+      "get" : {
+        "summary" : "List power consumption for selected Storage Provider",
+        "operationId" : "power",
+        "description" : "By passing in mandatory Storage Provider id, from/to dates, and optional comma separted list of hardware names, racks, Filecoin miner Ids, loacations and hardware functions, search offset and limit, you can search SP's power consumptions available in the system",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "storage_provider_id",
+          "description" : "pass required Storage Provider Id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "default": 1
+          }
+        }, {
+          "in" : "query",
+          "name" : "from",
+          "description" : "pass required from date (ISO 8601 format)",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "default": "2022-06-25T17:24:17.153Z"
+          }
+        }, {
+          "in" : "query",
+          "name" : "to",
+          "description" : "pass required to date (ISO 8601 format)",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "default": "2022-06-25T19:24:17.153Z"
+          }
+        }, {
+          "in" : "query",
+          "name" : "names",
+          "description" : "pass an optional comma delimited list of hardware names (or parts)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "racks",
+          "description" : "pass an optional comma delimited list of rack names (or parts)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "miners",
+          "description" : "pass an optional comma delimited list of Filecoin miner IDs (or parts)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "locations",
+          "description" : "pass an optional comma delimited list of hardware locations (or parts)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "functions",
+          "description" : "pass an optional comma delimited list of hardware functions (or parts)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "offset",
+          "description" : "pass an optional search records offset for pagging (default 0)",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "default": 0
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "description" : "pass an optional search records limit for pagging (default 1000000)",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "default": 100
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "search results matching criteria",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/StorageProvidersPowerResponseItem"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sp-metered-energy/api/v1/energy" : {
+      "get" : {
+        "summary" : "List energy consumption for selected Storage Provider",
+        "operationId" : "energy",
+        "description" : "By passing in mandatory Storage Provider id, from/to dates, and optional comma separted list of hardware names, racks, Filecoin miner Ids, loacations and hardware functions, search offset and limit, you can search SP's energy consumptions available in the system",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "storage_provider_id",
+          "description" : "pass required Storage Provider Id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "default": 1
+          }
+        }, {
+          "in" : "query",
+          "name" : "from",
+          "description" : "pass required from date (ISO 8601 format)",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "default": "2022-06-25T17:24:17.153Z"
+          }
+        }, {
+          "in" : "query",
+          "name" : "to",
+          "description" : "pass required to date (ISO 8601 format)",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "default": "2022-06-25T19:24:17.153Z"
+          }
+        }, {
+          "in" : "query",
+          "name" : "names",
+          "description" : "pass an optional comma delimited list of hardware names (or parts)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "racks",
+          "description" : "pass an optional comma delimited list of rack names (or parts)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "miners",
+          "description" : "pass an optional comma delimited list of Filecoin miner IDs (or parts)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "locations",
+          "description" : "pass an optional comma delimited list of hardware locations (or parts)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "functions",
+          "description" : "pass an optional comma delimited list of hardware functions (or parts)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "offset",
+          "description" : "pass an optional search records offset for pagging (default 0)",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "default": 0
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "description" : "pass an optional search records limit for pagging (default 1000000)",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "default": 100
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "search results matching criteria",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/StorageProvidersPowerResponseItem"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components" : {
+    "schemas" : {
+      "StorageProvidersResponseItem" : {
+        "type" : "object",
+        "required" : [ "Id", "StorageProvider", "Description" ],
+        "properties" : {
+          "Id" : {
+            "type" : "integer",
+            "example" : 1
+          },
+          "StorageProvider" : {
+            "type" : "string",
+            "example" : "DCENT"
+          },
+          "Description" : {
+            "type" : "string",
+            "example" : "We are at the heart of the Filecoin network. We participate by storing data for clients, and computing cryptographic proofs to verify storage across time."
+          }
+        }
+      },
+      "StorageProvidersSpacesResponseItem" : {
+        "type" : "object",
+        "required" : [ "Space", "Order" ],
+        "properties" : {
+          "Space" : {
+            "type" : "string",
+            "example" : "Rack 1"
+          },
+          "Order" : {
+            "type" : "integer",
+            "example" : 1
+          }
+        }
+      },
+      "StorageProvidersHardwareFunctionsResponseItem" : {
+        "type" : "string",
+        "example" : "PC1,C1,GET"
+      },
+      "StorageProvidersHardwareResponseItem" : {
+        "type" : "object",
+        "required" : [ "Id", "StorageProviderId", "Name", "Functions", "Racks", "MinerId", "Ip", "Location", "Description" ],
+        "properties" : {
+          "Id" : {
+            "type" : "integer",
+            "example" : 76
+          },
+          "StorageProviderId" : {
+            "type" : "integer",
+            "example" : 1
+          },
+          "Name" : {
+            "type" : "string",
+            "example" : "PC1Worker0001"
+          },
+          "Rack" : {
+            "type" : "string",
+            "example" : "Rack 1"
+          },
+          "MinerId" : {
+            "type" : "string",
+            "example" : "f01199442"
+          },
+          "Ip" : {
+            "type" : "string",
+            "example" : "10.0.53.8"
+          },
+          "Location" : {
+            "type" : "string",
+            "example" : "Heerhugowaard"
+          },
+          "Functions" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/StorageProvidersHardwareFunctionsResponseItem"
+            }
+          },
+          "Description" : {
+            "type" : "string",
+            "example" : "PC1 worker"
+          }
+        }
+      },
+      "StorageProvidersPowerResponseItem" : {
+        "type" : "object",
+        "required" : [ "Id", "StorageProviderId", "Name", "Power", "Time", "Functions", "Racks", "MinerId", "Ip", "Location", "Description" ],
+        "properties" : {
+          "Id" : {
+            "type" : "integer",
+            "example" : 1
+          },
+          "StorageProviderId" : {
+            "type" : "integer",
+            "example" : 1
+          },
+          "Name" : {
+            "type" : "string",
+            "example" : "PC1Worker0001"
+          },
+          "Power" : {
+            "type" : "integer",
+            "example" : 661
+          },
+          "Time" : {
+            "type" : "string",
+            "example" : "2022-06-25T17:40:01Z"
+          },
+          "Rack" : {
+            "type" : "string",
+            "example" : "Rack 1"
+          },
+          "MinerId" : {
+            "type" : "string",
+            "example" : "f01199442"
+          },
+          "Ip" : {
+            "type" : "string",
+            "example" : "10.0.53.8"
+          },
+          "Location" : {
+            "type" : "string",
+            "example" : "Heerhugowaard"
+          },
+          "Functions" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/StorageProvidersHardwareFunctionsResponseItem"
+            }
+          },
+          "Description" : {
+            "type" : "string",
+            "example" : "PC1 worker"
+          }
+        }
+      },
+      "StorageProvidersEnergyResponseItem" : {
+        "type" : "object",
+        "required" : [ "Id", "StorageProviderId", "Name", "Energy", "Time", "Functions", "Racks", "MinerId", "Ip", "Location", "Description" ],
+        "properties" : {
+          "Id" : {
+            "type" : "integer",
+            "example" : 1
+          },
+          "StorageProviderId" : {
+            "type" : "integer",
+            "example" : 1
+          },
+          "Name" : {
+            "type" : "string",
+            "example" : "PC1Worker0001"
+          },
+          "Energy" : {
+            "type" : "integer",
+            "example" : 3661
+          },
+          "Time" : {
+            "type" : "string",
+            "example" : "2022-06-25T17:40:01Z"
+          },
+          "Rack" : {
+            "type" : "string",
+            "example" : "Rack 1"
+          },
+          "MinerId" : {
+            "type" : "string",
+            "example" : "f01199442"
+          },
+          "Ip" : {
+            "type" : "string",
+            "example" : "10.0.53.8"
+          },
+          "Location" : {
+            "type" : "string",
+            "example" : "Heerhugowaard"
+          },
+          "Functions" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/StorageProvidersHardwareFunctionsResponseItem"
+            }
+          },
+          "Description" : {
+            "type" : "string",
+            "example" : "PC1 worker"
+          }
+        }
+      }
+    }
+  }
+}
