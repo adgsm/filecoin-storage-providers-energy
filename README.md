@@ -4,6 +4,7 @@ by [Momcilo Dzunic aka smartbee.eth](https://twitter.com/mdzunic)
 1. Collecting energy consumption data from Filecoin Storage Providers
 2. Parsing energy consumption data
 3. Consolidated energy consumption data API
+4. Simple web UI with charts
 
 ### Use
 
@@ -19,7 +20,7 @@ by [Momcilo Dzunic aka smartbee.eth](https://twitter.com/mdzunic)
 ```
 ### ToDo
 
-4. Create simple web UI with charts
+5. Store data at IPFS
 
 ### License
 Licensed under the MIT license.
