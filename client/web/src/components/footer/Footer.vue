@@ -1,9 +1,13 @@
 <template>
 	<section :class="footerClass">
-	<!--
-		<a href="https://www.flaticon.com/free-icons/computer" title="computer icons">Computer icons created by vectorsmarket15 - Flaticon</a>
-		<a href="https://www.flaticon.com/free-icons/server" title="server icons">Server icons created by Maxim Basinski Premium - Flaticon</a>
-	-->
+		<div class="attributions">
+			<div class="text">{{ $t('message.footer.attributions') }}: </div>
+			<div class="attribution">
+				<a href="https://www.flaticon.com/free-icons/computer" target="_blank" title="computer icons">vectorsmarket15 - Flaticon</a>
+				|
+				<a href="https://www.flaticon.com/free-icons/server" target="_blank" title="server icons">Maxim Basinski Premium - Flaticon</a>
+			</div>
+		</div>
 	</section>
 </template>
 

@@ -1,4 +1,27 @@
 .common-footer {
+	position: relative;
+	display: flex;
+	flex-direction: row;
+	flex-wrap: nowrap;
+	justify-content: center;
+
+	text-align: center;
+
+	.attributions {
+		position: relative;
+		display: flex;
+		flex-direction: row;
+		flex-wrap: nowrap;
+		justify-content: center;
+		align-items: center;
+
+		color: #ddd;
+		font-size: .75rem;
+
+		a {
+			color: #ccc;
+		}
+	}
 
 	@media (max-width: 1024px) {
 	}
